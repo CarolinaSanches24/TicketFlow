@@ -1,7 +1,7 @@
 import React from 'react';
 import { Link, useNavigate, useLocation } from 'react-router-dom';
 import { useUser } from '../../contexts/UserContext';
-import { LayoutDashboard, Ticket, Rocket, Wrench, LogOut, User as UserIcon, Database } from 'lucide-react';
+import { LayoutDashboard, Ticket, Rocket, Wrench, LogOut, User as UserIcon, Database, FileText } from 'lucide-react';
 
 const Layout: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const { user, logout } = useUser();
@@ -19,6 +19,7 @@ const Layout: React.FC<{ children: React.ReactNode }> = ({ children }) => {
     { name: 'Melhorias', path: '/improvements', icon: Rocket },
     { name: 'Débitos Técnicos', path: '/debts', icon: Wrench },
     { name: 'Dados', path: '/data-requests', icon: Database },
+    { name: 'Relatório', path: '/report', icon: FileText },
   ];
 
   if (user?.role === 'ADMIN') {

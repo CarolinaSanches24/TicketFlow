@@ -19,6 +19,7 @@ interface DataRequest {
   status: 'PENDING' | 'OPEN' | 'ON_HOLD' | 'FINISHED';
   analyst_id: string | null;
   analyst?: { name: string };
+  opened_at: string | null;
   created_at: string;
 }
 
@@ -47,7 +48,8 @@ export default function DataRequests() {
     external_url: '',
     title: '',
     description: '',
-    analystId: ''
+    analystId: '',
+    opened_at: ''
   });
 
   // Edit/Delete States
@@ -91,11 +93,12 @@ export default function DataRequests() {
         title: newItem.title,
         description: newItem.description,
         analyst_id: newItem.analystId || null,
+        opened_at: newItem.opened_at || null,
         status: 'PENDING'
       });
       
       setIsModalOpen(false);
-      setNewItem({ external_id: '', external_url: '', title: '', description: '', analystId: '' });
+      setNewItem({ external_id: '', external_url: '', title: '', description: '', analystId: '', opened_at: '' });
       fetchItems();
     } catch (error) {
       alert('Erro ao criar solicitação');
@@ -125,6 +128,7 @@ export default function DataRequests() {
         title: editingItem.title,
         description: editingItem.description,
         analyst_id: editingItem.analyst_id,
+        opened_at: editingItem.opened_at,
         status: editingItem.status
       });
       setEditingItem(null);
@@ -202,14 +206,20 @@ export default function DataRequests() {
         );
       },
     }),
-    columnHelper.accessor('created_at', {
-      header: 'Criação',
-      cell: info => (
-        <div className="flex items-center gap-1.5 text-slate-500">
-          <Calendar className="w-3.5 h-3.5" />
-          <span className="text-xs">{new Date(info.getValue()).toLocaleDateString('pt-BR')}</span>
-        </div>
-      ),
+    columnHelper.display({
+      id: 'opened_at_col',
+      header: 'Data de Abertura',
+      cell: (info) => {
+        const item = info.row.original;
+        const raw = item.opened_at || item.created_at;
+        const d = raw.length === 10 ? new Date(raw + 'T12:00:00') : new Date(raw);
+        return (
+          <div className="flex items-center gap-1.5 text-slate-500">
+            <Calendar className="w-3.5 h-3.5" />
+            <span className="text-xs">{d.toLocaleDateString('pt-BR')}</span>
+          </div>
+        );
+      },
     }),
     columnHelper.display({
       id: 'actions',
@@ -433,6 +443,16 @@ export default function DataRequests() {
                 </select>
               </div>
 
+              <div>
+                <label className="block text-sm font-semibold text-slate-700 mb-1">Data de Abertura</label>
+                <input 
+                  type="date"
+                  value={newItem.opened_at}
+                  onChange={e => setNewItem({...newItem, opened_at: e.target.value})}
+                  className="w-full px-4 py-2 rounded-xl border border-slate-200 focus:ring-2 focus:ring-indigo-500 outline-none transition-all text-sm"
+                />
+              </div>
+
               <div className="pt-4 flex gap-3">
                 <button 
                   type="button"
@@ -533,6 +553,16 @@ export default function DataRequests() {
                     <option key={analyst.id} value={analyst.id}>{analyst.name}</option>
                   ))}
                 </select>
+              </div>
+
+              <div>
+                <label className="block text-sm font-semibold text-slate-700 mb-1">Data de Abertura</label>
+                <input 
+                  type="date"
+                  value={editingItem.opened_at ? editingItem.opened_at.substring(0, 10) : ''}
+                  onChange={e => setEditingItem({...editingItem, opened_at: e.target.value})}
+                  className="w-full px-4 py-2 rounded-xl border border-slate-200 focus:ring-2 focus:ring-indigo-500 outline-none transition-all text-sm"
+                />
               </div>
 
               <div className="pt-4 flex gap-3">

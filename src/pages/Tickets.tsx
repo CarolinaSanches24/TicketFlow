@@ -19,6 +19,7 @@ interface Ticket {
   status: 'PENDING' | 'OPEN' | 'ON_HOLD' | 'FINISHED';
   analyst_id: string | null;
   analyst?: { name: string };
+  opened_at: string | null;
   created_at: string;
   updated_at: string;
 }
@@ -50,7 +51,8 @@ export default function Tickets() {
     external_url: '',
     title: '',
     description: '',
-    analystId: ''
+    analystId: '',
+    opened_at: ''
   });
 
   // Edit/Delete States
@@ -95,11 +97,12 @@ export default function Tickets() {
     title: newTicket.title,
     description: newTicket.description,
     analyst_id: newTicket.analystId || null,
+    opened_at: newTicket.opened_at || null,
     status: 'PENDING'
   });
   
   setIsModalOpen(false);
-  setNewTicket({ external_id: '', external_url: '', title: '', description: '', analystId: '' });
+  setNewTicket({ external_id: '', external_url: '', title: '', description: '', analystId: '', opened_at: '' });
       fetchTickets();
     } catch (error) {
       alert('Erro ao criar ticket');
@@ -129,6 +132,7 @@ export default function Tickets() {
     title: editingTicket.title,
     description: editingTicket.description,
     analyst_id: editingTicket.analyst_id,
+    opened_at: editingTicket.opened_at,
     status: editingTicket.status
   });
       setEditingTicket(null);
@@ -206,14 +210,20 @@ export default function Tickets() {
         );
       },
     }),
-    columnHelper.accessor('created_at', {
-      header: 'Criação',
-      cell: info => (
-        <div className="flex items-center gap-1.5 text-slate-500">
-          <Calendar className="w-3.5 h-3.5" />
-          <span className="text-xs">{new Date(info.getValue()).toLocaleDateString('pt-BR')}</span>
-        </div>
-      ),
+    columnHelper.display({
+      id: 'opened_at_col',
+      header: 'Data de Abertura',
+      cell: (info) => {
+        const ticket = info.row.original;
+        const raw = ticket.opened_at || ticket.created_at;
+        const d = raw.length === 10 ? new Date(raw + 'T12:00:00') : new Date(raw);
+        return (
+          <div className="flex items-center gap-1.5 text-slate-500">
+            <Calendar className="w-3.5 h-3.5" />
+            <span className="text-xs">{d.toLocaleDateString('pt-BR')}</span>
+          </div>
+        );
+      },
     }),
     columnHelper.display({
       id: 'actions',
@@ -451,6 +461,16 @@ export default function Tickets() {
                 </select>
               </div>
 
+              <div>
+                <label className="block text-sm font-semibold text-slate-700 mb-1">Data de Abertura</label>
+                <input 
+                  type="date"
+                  value={newTicket.opened_at}
+                  onChange={e => setNewTicket({...newTicket, opened_at: e.target.value})}
+                  className="w-full px-4 py-2 rounded-xl border border-slate-200 focus:ring-2 focus:ring-primary-500 outline-none transition-all text-sm"
+                />
+              </div>
+
               <div className="pt-4 flex gap-3">
                 <button 
                   type="button"
@@ -550,6 +570,16 @@ export default function Tickets() {
                     <option key={analyst.id} value={analyst.id}>{analyst.name}</option>
                   ))}
                 </select>
+              </div>
+
+              <div>
+                <label className="block text-sm font-semibold text-slate-700 mb-1">Data de Abertura</label>
+                <input 
+                  type="date"
+                  value={editingTicket.opened_at ? editingTicket.opened_at.substring(0, 10) : ''}
+                  onChange={e => setEditingTicket({...editingTicket, opened_at: e.target.value})}
+                  className="w-full px-4 py-2 rounded-xl border border-slate-200 focus:ring-2 focus:ring-primary-500 outline-none transition-all text-sm"
+                />
               </div>
 
               <div className="pt-4 flex gap-3">

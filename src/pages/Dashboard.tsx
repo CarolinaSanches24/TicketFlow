@@ -38,6 +38,8 @@ export default function Dashboard() {
   const [endDate, setEndDate] = useState('');
 
   const [selectedCategory, setSelectedCategory] = useState<string | null>(null);
+  const [filterAnalyst, setFilterAnalyst] = useState('');
+  const [filterStatus, setFilterStatus] = useState('');
 
   const fetchStats = async () => {
     try {
@@ -67,7 +69,11 @@ export default function Dashboard() {
 
   const translateStatus = (status: string) => TRANSLATIONS[status] || status;
   const formatDate = (dateStr: string) => {
-    return new Date(dateStr).toLocaleDateString('pt-BR');
+    if (!dateStr) return '';
+    // DATE fields (YYYY-MM-DD) from PostgreSQL are treated as UTC midnight.
+    // Adding T12:00:00 avoids the timezone shift (e.g. UTC-3 showing previous day).
+    const d = dateStr.length === 10 ? new Date(dateStr + 'T12:00:00') : new Date(dateStr);
+    return d.toLocaleDateString('pt-BR');
   };
 
   const statusPieData = [
@@ -109,7 +115,16 @@ export default function Dashboard() {
     return [];
   };
 
-  const selectedData = getSelectedData();
+  const rawSelectedData = getSelectedData();
+
+  const selectedData = rawSelectedData.filter((item: any) => {
+    const analystMatch = !filterAnalyst || item.analyst?.name === filterAnalyst;
+    const statusMatch = !filterStatus || item.status === filterStatus;
+    return analystMatch && statusMatch;
+  });
+
+  const availableStatuses = [...new Set(rawSelectedData.map((item: any) => item.status))];
+  const allAnalysts = stats.byAnalyst.map((a: any) => a.name);
 
   return (
     <Layout>
@@ -227,11 +242,48 @@ export default function Dashboard() {
         {/* Drill-down Details Table */}
         {selectedCategory && (
           <div className="bg-white rounded-2xl shadow-sm border border-slate-100 overflow-hidden animate-in slide-in-from-bottom duration-500">
-            <div className="px-6 py-4 border-b border-slate-100 bg-slate-50/50 flex items-center justify-between">
-              <h2 className="text-xl font-bold text-slate-900">
-                Detalhes: {cards.find(c => c.id === selectedCategory)?.label}
-              </h2>
-              <button onClick={() => setSelectedCategory(null)} className="text-sm font-bold text-slate-400 hover:text-slate-600">Fechar</button>
+            <div className="px-6 py-4 border-b border-slate-100 bg-slate-50/50">
+              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+                <h2 className="text-xl font-bold text-slate-900">
+                  Detalhes: {cards.find(c => c.id === selectedCategory)?.label}
+                </h2>
+                <div className="flex items-center flex-wrap gap-2">
+                  <select
+                    value={filterAnalyst}
+                    onChange={e => setFilterAnalyst(e.target.value)}
+                    className="text-sm border border-slate-200 rounded-lg px-3 py-1.5 text-slate-600 focus:ring-2 focus:ring-primary-500 outline-none bg-white"
+                  >
+                    <option value="">Todos os analistas</option>
+                    {allAnalysts.map((name: string) => (
+                      <option key={name} value={name}>{name}</option>
+                    ))}
+                  </select>
+                  <select
+                    value={filterStatus}
+                    onChange={e => setFilterStatus(e.target.value)}
+                    className="text-sm border border-slate-200 rounded-lg px-3 py-1.5 text-slate-600 focus:ring-2 focus:ring-primary-500 outline-none bg-white"
+                  >
+                    <option value="">Todos os status</option>
+                    {availableStatuses.map((s: any) => (
+                      <option key={s} value={s}>{translateStatus(s)}</option>
+                    ))}
+                  </select>
+                  {(filterAnalyst || filterStatus) && (
+                    <button
+                      onClick={() => { setFilterAnalyst(''); setFilterStatus(''); }}
+                      className="text-xs font-bold text-primary-600 hover:text-primary-700 px-2 py-1.5"
+                    >
+                      Limpar filtros
+                    </button>
+                  )}
+                  <button
+                    onClick={() => { setSelectedCategory(null); setFilterAnalyst(''); setFilterStatus(''); }}
+                    className="text-sm font-bold text-slate-400 hover:text-slate-600"
+                  >
+                    Fechar
+                  </button>
+                </div>
+              </div>
             </div>
             
             <div className="overflow-x-auto">
@@ -257,9 +309,22 @@ export default function Dashboard() {
                     selectedData.map((item: any) => (
                       <tr key={item.id} className="hover:bg-slate-50 transition-colors border-b border-slate-50 last:border-0">
                         <td className="px-6 py-4">
-                          <span className="font-mono text-xs font-bold bg-slate-100 px-2 py-1 rounded text-slate-600">
-                            #{item.external_id || '---'}
-                          </span>
+                          {item.external_url ? (
+                            <a 
+                              href={item.external_url} 
+                              target="_blank" 
+                              rel="noopener noreferrer"
+                              className="font-mono text-xs font-bold bg-primary-50 px-2 py-1 rounded text-primary-600 hover:bg-primary-100 transition-colors flex items-center gap-1 w-fit"
+                              title="Abrir link externo"
+                            >
+                              #{item.external_id || '---'}
+                              <TrendingUp className="w-3 h-3 inline ml-1" />
+                            </a>
+                          ) : (
+                            <span className="font-mono text-xs font-bold bg-slate-100 px-2 py-1 rounded text-slate-600">
+                              #{item.external_id || '---'}
+                            </span>
+                          )}
                         </td>
                         <td className="px-6 py-4">
                           <span className="text-sm font-medium text-slate-600">{item.type}</span>
@@ -277,7 +342,7 @@ export default function Dashboard() {
                           </span>
                         </td>
                         <td className="px-6 py-4 text-sm text-slate-500">
-                          {formatDate(item.created_at)}
+                          {formatDate(item.opened_at || item.created_at)}
                         </td>
                       </tr>
                     ))

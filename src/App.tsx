@@ -6,6 +6,7 @@ import Improvements from './pages/Improvements';
 import Debts from './pages/Debts';
 import DataRequests from './pages/DataRequests';
 import Users from './pages/Users';
+import Report from './pages/Report';
 import { UserProvider, useUser } from './contexts/UserContext';
 
 const ProtectedRoute = ({ children }: { children: React.ReactNode }) => {
@@ -28,6 +29,7 @@ function AppRoutes() {
       <Route path="/improvements" element={<ProtectedRoute><Improvements /></ProtectedRoute>} />
       <Route path="/debts" element={<ProtectedRoute><Debts /></ProtectedRoute>} />
       <Route path="/data-requests" element={<ProtectedRoute><DataRequests /></ProtectedRoute>} />
+      <Route path="/report" element={<ProtectedRoute><Report /></ProtectedRoute>} />
       <Route path="/users" element={<ProtectedRoute><Users /></ProtectedRoute>} />
     </Routes>
   );

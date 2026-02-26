@@ -236,3 +236,9 @@ CREATE TRIGGER update_tickets_updated_at BEFORE UPDATE ON tickets FOR EACH ROW E
 CREATE TRIGGER update_improvements_updated_at BEFORE UPDATE ON improvements FOR EACH ROW EXECUTE PROCEDURE update_updated_at_column();
 CREATE TRIGGER update_debts_updated_at BEFORE UPDATE ON debts FOR EACH ROW EXECUTE PROCEDURE update_updated_at_column();
 CREATE TRIGGER update_data_requests_updated_at BEFORE UPDATE ON data_requests FOR EACH ROW EXECUTE PROCEDURE update_updated_at_column();
+
+-- Migration: add opened_at field to allow manual date entry by the user
+ALTER TABLE tickets ADD COLUMN IF NOT EXISTS opened_at DATE;
+ALTER TABLE improvements ADD COLUMN IF NOT EXISTS opened_at DATE;
+ALTER TABLE data_requests ADD COLUMN IF NOT EXISTS opened_at DATE;
+
