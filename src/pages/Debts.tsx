@@ -212,6 +212,21 @@ export default function Debts() {
       },
     }),
     columnHelper.display({
+      id: 'opened_at_col',
+      header: 'Data de Abertura',
+      cell: (info) => {
+        const item = info.row.original;
+        const raw = item.opened_at || item.created_at;
+        const d = raw.length === 10 ? new Date(raw + 'T12:00:00') : new Date(raw);
+        return (
+          <div className="flex items-center gap-1.5 text-slate-500">
+            <Calendar className="w-3.5 h-3.5" />
+            <span className="text-xs">{d.toLocaleDateString('pt-BR')}</span>
+          </div>
+        );
+      },
+    }),
+    columnHelper.display({
       id: 'actions',
       header: '',
       cell: (info) => {
