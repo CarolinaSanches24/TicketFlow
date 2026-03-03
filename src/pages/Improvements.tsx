@@ -19,6 +19,7 @@ interface Improvement {
   status: 'OPEN' | 'IN_PROGRESS' | 'IN_TEST' | 'FINISHED' | 'CONVERTED_TO_DEBT';
   analyst_id: string | null;
   analyst?: { name: string };
+  organization?: string | null;
   opened_at: string | null;
   created_at: string;
 }
@@ -40,6 +41,13 @@ export default function Improvements() {
   const [searchTerm, setSearchTerm] = useState('');
   const [showClosed, setShowClosed] = useState(false);
 
+  // Advanced Filters
+  const [filterAnalyst, setFilterAnalyst] = useState('');
+  const [filterOrg, setFilterOrg] = useState('');
+  const [filterNumber, setFilterNumber] = useState('');
+  const [filterStartDate, setFilterStartDate] = useState('');
+  const [filterEndDate, setFilterEndDate] = useState('');
+
   // Creation Modal States
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -50,6 +58,7 @@ export default function Improvements() {
     title: '',
     description: '',
     analystId: '',
+    organization: '',
     opened_at: ''
   });
 
@@ -94,12 +103,13 @@ export default function Improvements() {
     title: newItem.title,
     description: newItem.description,
     analyst_id: newItem.analystId || null,
+    organization: newItem.organization || null,
     opened_at: newItem.opened_at || null,
     status: 'OPEN'
   });
   
   setIsModalOpen(false);
-  setNewItem({ external_id: '', external_url: '', title: '', description: '', analystId: '', opened_at: '' });
+  setNewItem({ external_id: '', external_url: '', title: '', description: '', analystId: '', organization: '', opened_at: '' });
       fetchItems();
     } catch (error) {
       alert('Erro ao criar melhoria');
@@ -129,6 +139,7 @@ export default function Improvements() {
     title: editingItem.title,
     description: editingItem.description,
     analyst_id: editingItem.analyst_id,
+    organization: editingItem.organization,
     opened_at: editingItem.opened_at,
     status: editingItem.status
   });
@@ -277,10 +288,28 @@ export default function Improvements() {
       
       const isClosed = ['FINISHED', 'CONVERTED_TO_DEBT'].includes(t.status);
       
-      if (showClosed) return matchesSearch;
-      return matchesSearch && !isClosed;
+      const matchesAnalyst = !filterAnalyst || t.analyst_id === filterAnalyst;
+      const matchesOrg = !filterOrg || (t.organization && t.organization.toLowerCase().includes(filterOrg.toLowerCase()));
+      const matchesNumber = !filterNumber || (t.external_id && t.external_id.toLowerCase().includes(filterNumber.toLowerCase()));
+      
+      let matchesDate = true;
+      if (filterStartDate || filterEndDate) {
+        const dateToCompare = t.opened_at || t.created_at;
+        const d = new Date(dateToCompare);
+        if (filterStartDate) matchesDate = matchesDate && d >= new Date(filterStartDate);
+        if (filterEndDate) {
+          const end = new Date(filterEndDate);
+          end.setHours(23, 59, 59, 999);
+          matchesDate = matchesDate && d <= end;
+        }
+      }
+
+      const matchesFilters = matchesAnalyst && matchesOrg && matchesNumber && matchesDate;
+      
+      if (showClosed) return matchesSearch && matchesFilters;
+      return matchesSearch && !isClosed && matchesFilters;
     });
-  }, [data, searchTerm, showClosed]);
+  }, [data, searchTerm, showClosed, filterAnalyst, filterOrg, filterNumber, filterStartDate, filterEndDate]);
 
   const table = useReactTable({
     data: filteredData,
@@ -306,32 +335,81 @@ export default function Improvements() {
           </button>
         </div>
 
-        <div className="bg-white p-4 rounded-2xl shadow-sm border border-slate-100 flex flex-col md:flex-row gap-4 items-center">
-          <div className="relative flex-1 w-full">
-            <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
-            <input 
-              type="text" 
-              placeholder="Buscar melhorias..."
-              value={searchTerm}
-              onChange={(e) => setSearchTerm(e.target.value)}
-              className="w-full pl-10 pr-4 py-2 rounded-xl border border-slate-200 focus:ring-2 focus:ring-primary-500 focus:border-transparent outline-none transition-all text-sm"
-            />
+        <div className="bg-white p-4 rounded-2xl shadow-sm border border-slate-100 flex flex-col gap-4">
+          <div className="flex flex-col md:flex-row gap-4 items-center">
+            <div className="relative flex-1 w-full">
+              <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
+              <input 
+                type="text" 
+                placeholder="Buscar melhorias..."
+                value={searchTerm}
+                onChange={(e) => setSearchTerm(e.target.value)}
+                className="w-full pl-10 pr-4 py-2 rounded-xl border border-slate-200 focus:ring-2 focus:ring-primary-500 focus:border-transparent outline-none transition-all text-sm"
+              />
+            </div>
+  
+            <button
+              onClick={() => setShowClosed(!showClosed)}
+              className={`flex items-center gap-2 px-4 py-2 rounded-xl transition-all font-medium text-sm whitespace-nowrap ${
+                showClosed 
+                  ? 'bg-slate-100 text-slate-600 hover:bg-slate-200' 
+                  : 'bg-primary-50 text-primary-600 hover:bg-primary-100'
+              }`}
+            >
+              {showClosed ? (
+                <><EyeOff className="w-4 h-4" /> Ocultar Finalizadas</>
+              ) : (
+                <><Eye className="w-4 h-4" /> Ver Finalizadas</>
+              )}
+            </button>
           </div>
 
-          <button
-            onClick={() => setShowClosed(!showClosed)}
-            className={`flex items-center gap-2 px-4 py-2 rounded-xl transition-all font-medium text-sm whitespace-nowrap ${
-              showClosed 
-                ? 'bg-slate-100 text-slate-600 hover:bg-slate-200' 
-                : 'bg-primary-50 text-primary-600 hover:bg-primary-100'
-            }`}
-          >
-            {showClosed ? (
-              <><EyeOff className="w-4 h-4" /> Ocultar Finalizadas</>
-            ) : (
-              <><Eye className="w-4 h-4" /> Ver Finalizadas</>
-            )}
-          </button>
+          {/* Advanced Filters Row */}
+          <div className="grid grid-cols-1 md:grid-cols-5 gap-3 pt-3 border-t border-slate-100">
+            <div>
+              <input 
+                type="text" 
+                placeholder="Número (ex: 123)"
+                value={filterNumber}
+                onChange={(e) => setFilterNumber(e.target.value)}
+                className="w-full px-3 py-1.5 rounded-lg border border-slate-200 focus:ring-2 focus:ring-primary-500 outline-none text-sm"
+              />
+            </div>
+            <div>
+              <select 
+                value={filterAnalyst}
+                onChange={(e) => setFilterAnalyst(e.target.value)}
+                className="w-full px-3 py-1.5 rounded-lg border border-slate-200 focus:ring-2 focus:ring-primary-500 outline-none text-sm"
+              >
+                <option value="">Todos Analistas</option>
+                {analysts.map(a => <option key={a.id} value={a.id}>{a.name}</option>)}
+              </select>
+            </div>
+            <div>
+              <input 
+                type="text" 
+                placeholder="Organização"
+                value={filterOrg}
+                onChange={(e) => setFilterOrg(e.target.value)}
+                className="w-full px-3 py-1.5 rounded-lg border border-slate-200 focus:ring-2 focus:ring-primary-500 outline-none text-sm"
+              />
+            </div>
+            <div className="flex items-center gap-2 col-span-2">
+              <input 
+                type="date" 
+                value={filterStartDate}
+                onChange={(e) => setFilterStartDate(e.target.value)}
+                className="flex-1 px-3 py-1.5 rounded-lg border border-slate-200 focus:ring-2 focus:ring-primary-500 outline-none text-sm"
+              />
+              <span className="text-slate-400">até</span>
+              <input 
+                type="date" 
+                value={filterEndDate}
+                onChange={(e) => setFilterEndDate(e.target.value)}
+                className="flex-1 px-3 py-1.5 rounded-lg border border-slate-200 focus:ring-2 focus:ring-primary-500 outline-none text-sm"
+              />
+            </div>
+          </div>
         </div>
 
         <div className="bg-white rounded-2xl shadow-sm border border-slate-100 overflow-hidden">
@@ -441,6 +519,17 @@ export default function Improvements() {
               </div>
 
               <div>
+                <label className="block text-sm font-semibold text-slate-700 mb-1">Organização (Opcional)</label>
+                <input 
+                  type="text" 
+                  value={newItem.organization}
+                  onChange={e => setNewItem({...newItem, organization: e.target.value})}
+                  className="w-full px-4 py-2 rounded-xl border border-slate-200 focus:ring-2 focus:ring-primary-500 outline-none transition-all text-sm"
+                  placeholder="Ex: Departamento/Empresa"
+                />
+              </div>
+
+              <div>
                 <label className="block text-sm font-semibold text-slate-700 mb-1">Data de Abertura</label>
                 <input 
                   type="date"
@@ -488,7 +577,7 @@ export default function Improvements() {
                   <input 
                     type="text" 
                     value={editingItem.external_id || ''}
-                    onChange={e => setEditingItem({...editingItem, external_id: e.target.value})}
+                    onChange={e => editingItem && setEditingItem({...editingItem, external_id: e.target.value})}
                     className="w-full px-4 py-2 rounded-xl border border-slate-200 focus:ring-2 focus:ring-primary-500 outline-none transition-all text-sm"
                   />
                 </div>
@@ -498,7 +587,7 @@ export default function Improvements() {
                     type="url" 
                     placeholder="https://jira.exemplo.com/browse/KEY-123"
                     value={editingItem.external_url || ''}
-                    onChange={e => setEditingItem({...editingItem, external_url: e.target.value})}
+                    onChange={e => editingItem && setEditingItem({...editingItem, external_url: e.target.value})}
                     className="w-full px-4 py-2 rounded-xl border border-slate-200 focus:ring-2 focus:ring-primary-500 outline-none transition-all text-sm"
                   />
                 </div>
@@ -510,7 +599,7 @@ export default function Improvements() {
                   type="text" 
                   required
                   value={editingItem.title}
-                  onChange={e => setEditingItem({...editingItem, title: e.target.value})}
+                  onChange={e => editingItem && setEditingItem({...editingItem, title: e.target.value})}
                   className="w-full px-4 py-2 rounded-xl border border-slate-200 focus:ring-2 focus:ring-primary-500 outline-none transition-all text-sm"
                 />
               </div>
@@ -520,7 +609,7 @@ export default function Improvements() {
                 <textarea 
                   rows={3}
                   value={editingItem.description}
-                  onChange={e => setEditingItem({...editingItem, description: e.target.value})}
+                  onChange={e => editingItem && setEditingItem({...editingItem, description: e.target.value})}
                   className="w-full px-4 py-2 rounded-xl border border-slate-200 focus:ring-2 focus:ring-primary-500 outline-none transition-all text-sm resize-none"
                 />
               </div>
@@ -529,7 +618,7 @@ export default function Improvements() {
                 <label className="block text-sm font-semibold text-slate-700 mb-1">Status</label>
                 <select 
                   value={editingItem.status}
-                  onChange={e => setEditingItem({...editingItem, status: e.target.value as any})}
+                  onChange={e => editingItem && setEditingItem({...editingItem, status: e.target.value as any})}
                   className="w-full px-4 py-2 rounded-xl border border-slate-200 focus:ring-2 focus:ring-primary-500 outline-none transition-all text-sm"
                 >
                   {Object.entries(statusConfig).map(([val, config]) => (
@@ -542,7 +631,7 @@ export default function Improvements() {
                 <label className="block text-sm font-semibold text-slate-700 mb-1">Analista</label>
                 <select 
                   value={editingItem.analyst_id || ''}
-                  onChange={e => setEditingItem({...editingItem, analyst_id: e.target.value || null})}
+                  onChange={e => editingItem && setEditingItem({...editingItem, analyst_id: e.target.value || null})}
                   className="w-full px-4 py-2 rounded-xl border border-slate-200 focus:ring-2 focus:ring-primary-500 outline-none transition-all text-sm"
                 >
                   <option value="">Não atribuído</option>
@@ -553,11 +642,21 @@ export default function Improvements() {
               </div>
 
               <div>
+                <label className="block text-sm font-semibold text-slate-700 mb-1">Organização</label>
+                <input 
+                  type="text" 
+                  value={editingItem.organization || ''}
+                  onChange={e => editingItem && setEditingItem({...editingItem, organization: e.target.value})}
+                  className="w-full px-4 py-2 rounded-xl border border-slate-200 focus:ring-2 focus:ring-primary-500 outline-none transition-all text-sm"
+                />
+              </div>
+
+              <div>
                 <label className="block text-sm font-semibold text-slate-700 mb-1">Data de Abertura</label>
                 <input 
                   type="date"
                   value={editingItem.opened_at ? editingItem.opened_at.substring(0, 10) : ''}
-                  onChange={e => setEditingItem({...editingItem, opened_at: e.target.value})}
+                  onChange={e => editingItem && setEditingItem({...editingItem, opened_at: e.target.value})}
                   className="w-full px-4 py-2 rounded-xl border border-slate-200 focus:ring-2 focus:ring-primary-500 outline-none transition-all text-sm"
                 />
               </div>

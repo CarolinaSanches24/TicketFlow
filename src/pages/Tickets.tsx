@@ -19,6 +19,7 @@ interface Ticket {
   status: 'PENDING' | 'OPEN' | 'ON_HOLD' | 'FINISHED';
   analyst_id: string | null;
   analyst?: { name: string };
+  organization?: string | null;
   opened_at: string | null;
   created_at: string;
   updated_at: string;
@@ -42,6 +43,13 @@ export default function Tickets() {
   const [searchTerm, setSearchTerm] = useState('');
   const [showClosed, setShowClosed] = useState(false);
   
+  // Advanced Filters
+  const [filterAnalyst, setFilterAnalyst] = useState('');
+  const [filterOrg, setFilterOrg] = useState('');
+  const [filterNumber, setFilterNumber] = useState('');
+  const [filterStartDate, setFilterStartDate] = useState('');
+  const [filterEndDate, setFilterEndDate] = useState('');
+  
   // Creation Modal States
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -52,6 +60,7 @@ export default function Tickets() {
     title: '',
     description: '',
     analystId: '',
+    organization: '',
     opened_at: ''
   });
 
@@ -97,12 +106,13 @@ export default function Tickets() {
     title: newTicket.title,
     description: newTicket.description,
     analyst_id: newTicket.analystId || null,
+    organization: newTicket.organization || null,
     opened_at: newTicket.opened_at || null,
     status: 'PENDING'
   });
   
   setIsModalOpen(false);
-  setNewTicket({ external_id: '', external_url: '', title: '', description: '', analystId: '', opened_at: '' });
+  setNewTicket({ external_id: '', external_url: '', title: '', description: '', analystId: '', organization: '', opened_at: '' });
       fetchTickets();
     } catch (error) {
       alert('Erro ao criar ticket');
@@ -132,6 +142,7 @@ export default function Tickets() {
     title: editingTicket.title,
     description: editingTicket.description,
     analyst_id: editingTicket.analyst_id,
+    organization: editingTicket.organization,
     opened_at: editingTicket.opened_at,
     status: editingTicket.status
   });
@@ -291,10 +302,28 @@ export default function Tickets() {
       
       const isClosed = ['FINISHED', 'CONVERTED_TO_IMPROVEMENT', 'CONVERTED_TO_DEBT'].includes(t.status);
       
-      if (showClosed) return matchesSearch;
-      return matchesSearch && !isClosed;
+      const matchesAnalyst = !filterAnalyst || t.analyst_id === filterAnalyst;
+      const matchesOrg = !filterOrg || (t.organization && t.organization.toLowerCase().includes(filterOrg.toLowerCase()));
+      const matchesNumber = !filterNumber || (t.external_id && t.external_id.toLowerCase().includes(filterNumber.toLowerCase()));
+      
+      let matchesDate = true;
+      if (filterStartDate || filterEndDate) {
+        const dateToCompare = t.opened_at || t.created_at;
+        const d = new Date(dateToCompare);
+        if (filterStartDate) matchesDate = matchesDate && d >= new Date(filterStartDate);
+        if (filterEndDate) {
+          const end = new Date(filterEndDate);
+          end.setHours(23, 59, 59, 999);
+          matchesDate = matchesDate && d <= end;
+        }
+      }
+
+      const matchesFilters = matchesAnalyst && matchesOrg && matchesNumber && matchesDate;
+      
+      if (showClosed) return matchesSearch && matchesFilters;
+      return matchesSearch && !isClosed && matchesFilters;
     });
-  }, [data, searchTerm, showClosed]);
+  }, [data, searchTerm, showClosed, filterAnalyst, filterOrg, filterNumber, filterStartDate, filterEndDate]);
 
   const table = useReactTable({
     data: filteredData,
@@ -321,32 +350,81 @@ export default function Tickets() {
         </div>
 
         {/* Filters & Search */}
-        <div className="bg-white p-4 rounded-2xl shadow-sm border border-slate-100 flex flex-col md:flex-row gap-4 items-center">
-          <div className="relative flex-1 w-full">
-            <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
-            <input 
-              type="text" 
-              placeholder="Buscar por título ou analista..."
-              value={searchTerm}
-              onChange={(e) => setSearchTerm(e.target.value)}
-              className="w-full pl-10 pr-4 py-2 rounded-xl border border-slate-200 focus:ring-2 focus:ring-primary-500 focus:border-transparent outline-none transition-all text-sm"
-            />
+        <div className="bg-white p-4 rounded-2xl shadow-sm border border-slate-100 flex flex-col gap-4">
+          <div className="flex flex-col md:flex-row gap-4 items-center">
+            <div className="relative flex-1 w-full">
+              <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
+              <input 
+                type="text" 
+                placeholder="Buscar por título ou analista..."
+                value={searchTerm}
+                onChange={(e) => setSearchTerm(e.target.value)}
+                className="w-full pl-10 pr-4 py-2 rounded-xl border border-slate-200 focus:ring-2 focus:ring-primary-500 focus:border-transparent outline-none transition-all text-sm"
+              />
+            </div>
+  
+            <button
+              onClick={() => setShowClosed(!showClosed)}
+              className={`flex items-center gap-2 px-4 py-2 rounded-xl transition-all font-medium text-sm whitespace-nowrap ${
+                showClosed 
+                  ? 'bg-slate-100 text-slate-600 hover:bg-slate-200' 
+                  : 'bg-primary-50 text-primary-600 hover:bg-primary-100'
+              }`}
+            >
+              {showClosed ? (
+                <><EyeOff className="w-4 h-4" /> Ocultar Finalizados</>
+              ) : (
+                <><Eye className="w-4 h-4" /> Ver Finalizados</>
+              )}
+            </button>
           </div>
 
-          <button
-            onClick={() => setShowClosed(!showClosed)}
-            className={`flex items-center gap-2 px-4 py-2 rounded-xl transition-all font-medium text-sm whitespace-nowrap ${
-              showClosed 
-                ? 'bg-slate-100 text-slate-600 hover:bg-slate-200' 
-                : 'bg-primary-50 text-primary-600 hover:bg-primary-100'
-            }`}
-          >
-            {showClosed ? (
-              <><EyeOff className="w-4 h-4" /> Ocultar Finalizados</>
-            ) : (
-              <><Eye className="w-4 h-4" /> Ver Finalizados</>
-            )}
-          </button>
+          {/* Advanced Filters Row */}
+          <div className="grid grid-cols-1 md:grid-cols-5 gap-3 pt-3 border-t border-slate-100">
+            <div>
+              <input 
+                type="text" 
+                placeholder="Número (ex: 123)"
+                value={filterNumber}
+                onChange={(e) => setFilterNumber(e.target.value)}
+                className="w-full px-3 py-1.5 rounded-lg border border-slate-200 focus:ring-2 focus:ring-primary-500 outline-none text-sm"
+              />
+            </div>
+            <div>
+              <select 
+                value={filterAnalyst}
+                onChange={(e) => setFilterAnalyst(e.target.value)}
+                className="w-full px-3 py-1.5 rounded-lg border border-slate-200 focus:ring-2 focus:ring-primary-500 outline-none text-sm"
+              >
+                <option value="">Todos Analistas</option>
+                {analysts.map(a => <option key={a.id} value={a.id}>{a.name}</option>)}
+              </select>
+            </div>
+            <div>
+              <input 
+                type="text" 
+                placeholder="Organização"
+                value={filterOrg}
+                onChange={(e) => setFilterOrg(e.target.value)}
+                className="w-full px-3 py-1.5 rounded-lg border border-slate-200 focus:ring-2 focus:ring-primary-500 outline-none text-sm"
+              />
+            </div>
+            <div className="flex items-center gap-2 col-span-2">
+              <input 
+                type="date" 
+                value={filterStartDate}
+                onChange={(e) => setFilterStartDate(e.target.value)}
+                className="flex-1 px-3 py-1.5 rounded-lg border border-slate-200 focus:ring-2 focus:ring-primary-500 outline-none text-sm"
+              />
+              <span className="text-slate-400">até</span>
+              <input 
+                type="date" 
+                value={filterEndDate}
+                onChange={(e) => setFilterEndDate(e.target.value)}
+                className="flex-1 px-3 py-1.5 rounded-lg border border-slate-200 focus:ring-2 focus:ring-primary-500 outline-none text-sm"
+              />
+            </div>
+          </div>
         </div>
 
         {/* Table */}
@@ -462,6 +540,17 @@ export default function Tickets() {
               </div>
 
               <div>
+                <label className="block text-sm font-semibold text-slate-700 mb-1">Organização (Opcional)</label>
+                <input 
+                  type="text" 
+                  value={newTicket.organization}
+                  onChange={e => setNewTicket({...newTicket, organization: e.target.value})}
+                  className="w-full px-4 py-2 rounded-xl border border-slate-200 focus:ring-2 focus:ring-primary-500 outline-none transition-all text-sm"
+                  placeholder="Ex: Empresa/Cliente"
+                />
+              </div>
+
+              <div>
                 <label className="block text-sm font-semibold text-slate-700 mb-1">Data de Abertura</label>
                 <input 
                   type="date"
@@ -509,7 +598,7 @@ export default function Tickets() {
                   <input 
                     type="text" 
                     value={editingTicket.external_id || ''}
-                    onChange={e => setEditingTicket({...editingTicket, external_id: e.target.value})}
+                    onChange={e => editingTicket && setEditingTicket({...editingTicket, external_id: e.target.value})}
                     className="w-full px-4 py-2 rounded-xl border border-slate-200 focus:ring-2 focus:ring-primary-500 outline-none transition-all text-sm"
                   />
                 </div>
@@ -518,7 +607,7 @@ export default function Tickets() {
                   <input 
                     type="url" 
                     value={editingTicket.external_url || ''}
-                    onChange={e => setEditingTicket({...editingTicket, external_url: e.target.value})}
+                    onChange={e => editingTicket && setEditingTicket({...editingTicket, external_url: e.target.value})}
                     className="w-full px-4 py-2 rounded-xl border border-slate-200 focus:ring-2 focus:ring-primary-500 outline-none transition-all text-sm"
                   />
                 </div>
@@ -530,7 +619,7 @@ export default function Tickets() {
                   type="text" 
                   required
                   value={editingTicket.title}
-                  onChange={e => setEditingTicket({...editingTicket, title: e.target.value})}
+                  onChange={e => editingTicket && setEditingTicket({...editingTicket, title: e.target.value})}
                   className="w-full px-4 py-2 rounded-xl border border-slate-200 focus:ring-2 focus:ring-primary-500 outline-none transition-all text-sm"
                 />
               </div>
@@ -540,7 +629,7 @@ export default function Tickets() {
                 <textarea 
                   rows={3}
                   value={editingTicket.description}
-                  onChange={e => setEditingTicket({...editingTicket, description: e.target.value})}
+                  onChange={e => editingTicket && setEditingTicket({...editingTicket, description: e.target.value})}
                   className="w-full px-4 py-2 rounded-xl border border-slate-200 focus:ring-2 focus:ring-primary-500 outline-none transition-all text-sm resize-none"
                 />
               </div>
@@ -549,7 +638,7 @@ export default function Tickets() {
                 <label className="block text-sm font-semibold text-slate-700 mb-1">Status</label>
                 <select 
                   value={editingTicket.status}
-                  onChange={e => setEditingTicket({...editingTicket, status: e.target.value as any})}
+                  onChange={e => editingTicket && setEditingTicket({...editingTicket, status: e.target.value as any})}
                   className="w-full px-4 py-2 rounded-xl border border-slate-200 focus:ring-2 focus:ring-primary-500 outline-none transition-all text-sm"
                 >
                   {Object.entries(statusConfig).map(([val, config]) => (
@@ -562,7 +651,7 @@ export default function Tickets() {
                 <label className="block text-sm font-semibold text-slate-700 mb-1">Analista</label>
                 <select 
                   value={editingTicket.analyst_id || ''}
-                  onChange={e => setEditingTicket({...editingTicket, analyst_id: e.target.value || null})}
+                  onChange={e => editingTicket && setEditingTicket({...editingTicket, analyst_id: e.target.value || null})}
                   className="w-full px-4 py-2 rounded-xl border border-slate-200 focus:ring-2 focus:ring-primary-500 outline-none transition-all text-sm"
                 >
                   <option value="">Não atribuído</option>
@@ -573,11 +662,21 @@ export default function Tickets() {
               </div>
 
               <div>
+                <label className="block text-sm font-semibold text-slate-700 mb-1">Organização</label>
+                <input 
+                  type="text" 
+                  value={editingTicket.organization || ''}
+                  onChange={e => editingTicket && setEditingTicket({...editingTicket, organization: e.target.value})}
+                  className="w-full px-4 py-2 rounded-xl border border-slate-200 focus:ring-2 focus:ring-primary-500 outline-none transition-all text-sm"
+                />
+              </div>
+
+              <div>
                 <label className="block text-sm font-semibold text-slate-700 mb-1">Data de Abertura</label>
                 <input 
                   type="date"
                   value={editingTicket.opened_at ? editingTicket.opened_at.substring(0, 10) : ''}
-                  onChange={e => setEditingTicket({...editingTicket, opened_at: e.target.value})}
+                  onChange={e => editingTicket && setEditingTicket({...editingTicket, opened_at: e.target.value})}
                   className="w-full px-4 py-2 rounded-xl border border-slate-200 focus:ring-2 focus:ring-primary-500 outline-none transition-all text-sm"
                 />
               </div>
