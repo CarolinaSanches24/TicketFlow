@@ -123,6 +123,7 @@ export default function Report() {
   const [startDate, setStartDate] = useState('');
   const [endDate, setEndDate] = useState('');
   const [selectedAnalyst, setSelectedAnalyst] = useState('');
+  const [selectedType, setSelectedType] = useState<'ALL' | 'TICKETS' | 'IMPROVEMENTS' | 'DEBTS' | 'DATA_REQUESTS'>('ALL');
 
   const printRef = useRef<HTMLDivElement>(null);
 
@@ -274,29 +275,44 @@ export default function Report() {
             <>
               {/* Summary Cards */}
               <div className="grid grid-cols-2 sm:grid-cols-5 gap-4 mb-6">
-                <div className="bg-white border border-slate-100 rounded-2xl p-5 shadow-sm print:shadow-none print:border print:rounded-lg">
+                <div 
+                  onClick={() => setSelectedType('ALL')}
+                  className={`bg-white border rounded-2xl p-5 print:shadow-none print:border print:rounded-lg cursor-pointer transition-all ${selectedType === 'ALL' ? 'ring-2 ring-primary-500 border-primary-500 shadow-md' : 'border-slate-100 shadow-sm hover:border-slate-300'}`}
+                >
                   <p className="text-xs font-bold text-slate-400 uppercase mb-1">Total em Aberto</p>
                   <p className="text-3xl font-bold text-slate-900">{totalOpen}</p>
                 </div>
-                <div className="bg-blue-50 border border-blue-100 rounded-2xl p-5 shadow-sm print:shadow-none print:border print:rounded-lg">
+                <div 
+                  onClick={() => setSelectedType(prev => prev === 'TICKETS' ? 'ALL' : 'TICKETS')}
+                  className={`bg-blue-50 border rounded-2xl p-5 print:shadow-none print:border print:rounded-lg cursor-pointer transition-all ${selectedType === 'TICKETS' ? 'ring-2 ring-blue-500 border-blue-500 shadow-md' : 'border-blue-100 shadow-sm hover:border-blue-300'}`}
+                >
                   <p className="text-xs font-bold text-blue-600 uppercase mb-1 flex items-center gap-1">
                     <Ticket className="w-3 h-3" /> Tickets
                   </p>
                   <p className="text-3xl font-bold text-blue-700">{tickets.length}</p>
                 </div>
-                <div className="bg-emerald-50 border border-emerald-100 rounded-2xl p-5 shadow-sm print:shadow-none print:border print:rounded-lg">
+                <div 
+                  onClick={() => setSelectedType(prev => prev === 'IMPROVEMENTS' ? 'ALL' : 'IMPROVEMENTS')}
+                  className={`bg-emerald-50 border rounded-2xl p-5 print:shadow-none print:border print:rounded-lg cursor-pointer transition-all ${selectedType === 'IMPROVEMENTS' ? 'ring-2 ring-emerald-500 border-emerald-500 shadow-md' : 'border-emerald-100 shadow-sm hover:border-emerald-300'}`}
+                >
                   <p className="text-xs font-bold text-emerald-600 uppercase mb-1 flex items-center gap-1">
                     <TrendingUp className="w-3 h-3" /> Melhorias
                   </p>
                   <p className="text-3xl font-bold text-emerald-700">{improvements.length}</p>
                 </div>
-                <div className="bg-amber-50 border border-amber-100 rounded-2xl p-5 shadow-sm print:shadow-none print:border print:rounded-lg">
+                <div 
+                  onClick={() => setSelectedType(prev => prev === 'DEBTS' ? 'ALL' : 'DEBTS')}
+                  className={`bg-amber-50 border rounded-2xl p-5 print:shadow-none print:border print:rounded-lg cursor-pointer transition-all ${selectedType === 'DEBTS' ? 'ring-2 ring-amber-500 border-amber-500 shadow-md' : 'border-amber-100 shadow-sm hover:border-amber-300'}`}
+                >
                   <p className="text-xs font-bold text-amber-600 uppercase mb-1 flex items-center gap-1">
                     <Wrench className="w-3 h-3" /> Débitos
                   </p>
                   <p className="text-3xl font-bold text-amber-700">{debts.length}</p>
                 </div>
-                <div className="bg-indigo-50 border border-indigo-100 rounded-2xl p-5 shadow-sm print:shadow-none print:border print:rounded-lg">
+                <div 
+                  onClick={() => setSelectedType(prev => prev === 'DATA_REQUESTS' ? 'ALL' : 'DATA_REQUESTS')}
+                  className={`bg-indigo-50 border rounded-2xl p-5 print:shadow-none print:border print:rounded-lg cursor-pointer transition-all ${selectedType === 'DATA_REQUESTS' ? 'ring-2 ring-indigo-500 border-indigo-500 shadow-md' : 'border-indigo-100 shadow-sm hover:border-indigo-300'}`}
+                >
                   <p className="text-xs font-bold text-indigo-600 uppercase mb-1 flex items-center gap-1">
                     <Database className="w-3 h-3" /> Dados
                   </p>
@@ -306,30 +322,38 @@ export default function Report() {
 
               {/* Tables */}
               <div className="space-y-6">
-                <SectionTable
-                  title="Tickets em Aberto"
-                  icon={<Ticket className="w-4 h-4 text-blue-600" />}
-                  color="border-blue-100"
-                  items={tickets}
-                />
-                <SectionTable
-                  title="Melhorias em Aberto"
-                  icon={<TrendingUp className="w-4 h-4 text-emerald-600" />}
-                  color="border-emerald-100"
-                  items={improvements}
-                />
-                <SectionTable
-                  title="Débitos Técnicos em Aberto"
-                  icon={<Wrench className="w-4 h-4 text-amber-600" />}
-                  color="border-amber-100"
-                  items={debts}
-                />
-                <SectionTable
-                  title="Solicitações de Dados em Aberto"
-                  icon={<Database className="w-4 h-4 text-indigo-600" />}
-                  color="border-indigo-100"
-                  items={dataRequests}
-                />
+                {(selectedType === 'ALL' || selectedType === 'TICKETS') && (
+                  <SectionTable
+                    title="Tickets em Aberto"
+                    icon={<Ticket className="w-4 h-4 text-blue-600" />}
+                    color="border-blue-100"
+                    items={tickets}
+                  />
+                )}
+                {(selectedType === 'ALL' || selectedType === 'IMPROVEMENTS') && (
+                  <SectionTable
+                    title="Melhorias em Aberto"
+                    icon={<TrendingUp className="w-4 h-4 text-emerald-600" />}
+                    color="border-emerald-100"
+                    items={improvements}
+                  />
+                )}
+                {(selectedType === 'ALL' || selectedType === 'DEBTS') && (
+                  <SectionTable
+                    title="Débitos Técnicos em Aberto"
+                    icon={<Wrench className="w-4 h-4 text-amber-600" />}
+                    color="border-amber-100"
+                    items={debts}
+                  />
+                )}
+                {(selectedType === 'ALL' || selectedType === 'DATA_REQUESTS') && (
+                  <SectionTable
+                    title="Solicitações de Dados em Aberto"
+                    icon={<Database className="w-4 h-4 text-indigo-600" />}
+                    color="border-indigo-100"
+                    items={dataRequests}
+                  />
+                )}
               </div>
 
               {totalOpen === 0 && (
