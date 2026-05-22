@@ -24,6 +24,20 @@ export const authService = {
     const { error } = await supabase.auth.signOut();
     if (error) throw error;
   },
+
+  sendPasswordResetEmail: async (email: string) => {
+    const { error } = await supabase.auth.resetPasswordForEmail(email, {
+      redirectTo: `${window.location.origin}/update-password`,
+    });
+    if (error) throw error;
+  },
+
+  updatePassword: async (password: string) => {
+    const { error } = await supabase.auth.updateUser({
+      password: password
+    });
+    if (error) throw error;
+  },
   
   getAnalysts: async () => {
     const { data, error } = await supabase
@@ -178,91 +192,6 @@ export const authService = {
   }
 };
 
-export const ticketService = {
-  getAll: async () => {
-    const { data, error } = await supabase
-      .from('tickets_list')
-      .select('*')
-      .order('created_at', { ascending: false });
-    if (error) throw error;
-    return data;
-  },
-  create: async (ticketData: any) => {
-    const { data, error } = await supabase
-      .from('tickets')
-      .insert([ticketData])
-      .select()
-      .single();
-    if (error) throw error;
-    return data;
-  },
-  updateStatus: async (id: string, status: string) => {
-    if (status === 'CONVERTED_TO_IMPROVEMENT') {
-      const { data: ticket } = await supabase
-        .from('tickets')
-        .select('*')
-        .eq('id', id)
-        .single();
-
-      if (ticket) {
-        await supabase.from('improvements').insert([{
-          external_id: ticket.external_id,
-          external_url: ticket.external_url,
-          title: `Ticket: ${ticket.title}`,
-          description: ticket.description,
-          analyst_id: ticket.analyst_id,
-          origin_type: 'TICKET',
-          origin_id: id,
-          status: 'OPEN'
-        }]);
-      }
-    } else if (status === 'CONVERTED_TO_DEBT') {
-      const { data: ticket } = await supabase
-        .from('tickets')
-        .select('*')
-        .eq('id', id)
-        .single();
-
-      if (ticket) {
-        await supabase.from('debts').insert([{
-          external_id: ticket.external_id,
-          external_url: ticket.external_url,
-          origin_type: 'TICKET',
-          origin_id: id,
-          description: `Ticket: ${ticket.title}`,
-          analyst_id: ticket.analyst_id,
-          status: 'OPEN'
-        }]);
-      }
-    }
-
-    const { data, error } = await supabase
-      .from('tickets')
-      .update({ status })
-      .eq('id', id)
-      .select()
-      .single();
-    if (error) throw error;
-    return data;
-  },
-  update: async (id: string, updates: any) => {
-    const { data, error } = await supabase
-      .from('tickets')
-      .update(updates)
-      .eq('id', id)
-      .select()
-      .single();
-    if (error) throw error;
-    return data;
-  },
-  delete: async (id: string) => {
-    const { error } = await supabase
-      .from('tickets')
-      .delete()
-      .eq('id', id);
-    if (error) throw error;
-  },
-};
 
 export const improvementService = {
   getAll: async () => {
@@ -300,6 +229,8 @@ export const improvementService = {
           analyst_id: improvement.analyst_id,
           status: 'OPEN'
         }]);
+        await supabase.from('improvements').delete().eq('id', id);
+        return { ...improvement, status };
       }
     }
 
@@ -425,29 +356,145 @@ export const dataRequestService = {
   },
 };
 
+export const entityService = {
+  getAll: async () => {
+    const { data, error } = await supabase
+      .from('entities')
+      .select('*')
+      .order('created_at', { ascending: false });
+    if (error) throw error;
+    return data;
+  },
+  create: async (entityData: any) => {
+    const { data, error } = await supabase
+      .from('entities')
+      .insert([entityData])
+      .select()
+      .single();
+    if (error) throw error;
+    return data;
+  },
+  update: async (id: string, updates: any) => {
+    const { data, error } = await supabase
+      .from('entities')
+      .update(updates)
+      .eq('id', id)
+      .select()
+      .single();
+    if (error) throw error;
+    return data;
+  },
+  delete: async (id: string) => {
+    const { error } = await supabase
+      .from('entities')
+      .delete()
+      .eq('id', id);
+    if (error) throw error;
+  },
+};
+
+export const entityEvaluationsService = {
+  getByEntity: async (entityId: string) => {
+    const { data, error } = await supabase.from('entity_evaluations').select('*').eq('entity_id', entityId);
+    if (error) throw error;
+    return data;
+  },
+  create: async (payload: any) => {
+    const { data, error } = await supabase.from('entity_evaluations').insert([payload]).select().single();
+    if (error) throw error;
+    return data;
+  },
+  update: async (id: string, payload: any) => {
+    const { data, error } = await supabase.from('entity_evaluations').update(payload).eq('id', id).select().single();
+    if (error) throw error;
+    return data;
+  },
+  delete: async (id: string) => {
+    const { error } = await supabase.from('entity_evaluations').delete().eq('id', id);
+    if (error) throw error;
+  }
+};
+
+export const entityDocumentsService = {
+  getByEntity: async (entityId: string) => {
+    const { data, error } = await supabase.from('entity_documents').select('*').eq('entity_id', entityId).order('created_at', { ascending: false });
+    if (error) throw error;
+    return data;
+  },
+  create: async (payload: any) => {
+    const { data, error } = await supabase.from('entity_documents').insert([payload]).select().single();
+    if (error) throw error;
+    return data;
+  },
+  delete: async (id: string) => {
+    const { error } = await supabase.from('entity_documents').delete().eq('id', id);
+    if (error) throw error;
+  }
+};
+
+export const entityUnitsService = {
+  getByEntity: async (entityId: string) => {
+    const { data, error } = await supabase.from('entity_units').select('*').eq('entity_id', entityId).order('unit_name', { ascending: true });
+    if (error) throw error;
+    return data;
+  },
+  create: async (payload: any) => {
+    const { data, error } = await supabase.from('entity_units').insert([payload]).select().single();
+    if (error) throw error;
+    return data;
+  },
+  update: async (id: string, payload: any) => {
+    const { data, error } = await supabase.from('entity_units').update(payload).eq('id', id).select().single();
+    if (error) throw error;
+    return data;
+  },
+  delete: async (id: string) => {
+    const { error } = await supabase.from('entity_units').delete().eq('id', id);
+    if (error) throw error;
+  }
+};
+
+export const entityModulesService = {
+  getByEntity: async (entityId: string) => {
+    const { data, error } = await supabase.from('entity_modules').select('*').eq('entity_id', entityId).order('module_name', { ascending: true });
+    if (error) throw error;
+    return data;
+  },
+  create: async (payload: any) => {
+    const { data, error } = await supabase.from('entity_modules').insert([payload]).select().single();
+    if (error) throw error;
+    return data;
+  },
+  update: async (id: string, payload: any) => {
+    const { data, error } = await supabase.from('entity_modules').update(payload).eq('id', id).select().single();
+    if (error) throw error;
+    return data;
+  },
+  delete: async (id: string) => {
+    const { error } = await supabase.from('entity_modules').delete().eq('id', id);
+    if (error) throw error;
+  }
+};
+
 export const dashboardService = {
   getStats: async (startDate?: string, endDate?: string) => {
-    let ticketQuery = supabase.from('tickets_list').select('*');
     let improvementQuery = supabase.from('improvements_list').select('*');
     let debtQuery = supabase.from('debts_list').select('*');
     let dataRequestQuery = supabase.from('data_requests_list').select('*');
 
     if (startDate) {
       const start = `${startDate}T00:00:00.000Z`;
-      ticketQuery = ticketQuery.gte('created_at', start);
       improvementQuery = improvementQuery.gte('created_at', start);
       debtQuery = debtQuery.gte('created_at', start);
     }
     if (endDate) {
       const end = `${endDate}T23:59:59.999Z`;
-      ticketQuery = ticketQuery.lte('created_at', end);
       improvementQuery = improvementQuery.lte('created_at', end);
       debtQuery = debtQuery.lte('created_at', end);
       dataRequestQuery = dataRequestQuery.lte('created_at', end);
     }
 
-    const [tickets, improvements, debts, dataRequests, analysts] = await Promise.all([
-      ticketQuery,
+    const [improvements, debts, dataRequests, analysts] = await Promise.all([
       improvementQuery,
       debtQuery,
       dataRequestQuery,
@@ -455,15 +502,13 @@ export const dashboardService = {
     ]);
 
     const totals = {
-      tickets: tickets.data?.length || 0,
       improvements: improvements.data?.length || 0,
       debts: debts.data?.length || 0,
       dataRequests: dataRequests.data?.length || 0,
-      grandTotal: (tickets.data?.length || 0) + (improvements.data?.length || 0) + (debts.data?.length || 0) + (dataRequests.data?.length || 0)
+      grandTotal: (improvements.data?.length || 0) + (debts.data?.length || 0) + (dataRequests.data?.length || 0)
     };
 
     const byStatus = {
-      tickets: aggregateByStatus(tickets.data),
       improvements: aggregateByStatus(improvements.data),
       debts: aggregateByStatus(debts.data),
       dataRequests: aggregateByStatus(dataRequests.data),
@@ -473,7 +518,6 @@ export const dashboardService = {
     const byAnalyst = analysts.data?.map(analyst => ({
       name: analyst.name,
       _count: {
-        tickets: tickets.data?.filter(t => t.analyst_id === analyst.id).length || 0,
         improvements: improvements.data?.filter(i => i.analyst_id === analyst.id).length || 0,
         debts: debts.data?.filter(d => d.analyst_id === analyst.id).length || 0,
         dataRequests: dataRequests.data?.filter(dr => dr.analyst_id === analyst.id).length || 0,
@@ -485,7 +529,6 @@ export const dashboardService = {
       byStatus,
       byAnalyst,
       lists: {
-        tickets: tickets.data || [],
         improvements: improvements.data || [],
         debts: debts.data || [],
         dataRequests: dataRequests.data || []

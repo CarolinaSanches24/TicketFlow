@@ -8,6 +8,7 @@ import {
 } from '@tanstack/react-table';
 import { useUser } from '../contexts/UserContext';
 import { dataRequestService, authService } from '../services/api';
+import EntityAutocompleteSearch from '../components/EntityAutocompleteSearch';
 import { Plus, Search, User as UserIcon, Calendar, CheckCircle2, Clock, PlayCircle, AlertCircle, Eye, EyeOff, Edit2, Trash2, TrendingUp, Database } from 'lucide-react';
 
 interface DataRequest {
@@ -521,13 +522,11 @@ export default function DataRequests() {
                 </select>
               </div>
 
-              <div>
+              <div className="relative z-[60]">
                 <label className="block text-sm font-semibold text-slate-700 mb-1">Organização (Opcional)</label>
-                <input 
-                  type="text" 
+                <EntityAutocompleteSearch 
                   value={newItem.organization}
-                  onChange={e => setNewItem({...newItem, organization: e.target.value})}
-                  className="w-full px-4 py-2 rounded-xl border border-slate-200 focus:ring-2 focus:ring-indigo-500 outline-none transition-all text-sm"
+                  onChange={val => setNewItem({...newItem, organization: val})}
                   placeholder="Ex: Departamento/Empresa"
                 />
               </div>
@@ -644,13 +643,11 @@ export default function DataRequests() {
                 </select>
               </div>
 
-              <div>
+              <div className="relative z-[60]">
                 <label className="block text-sm font-semibold text-slate-700 mb-1">Organização</label>
-                <input 
-                  type="text" 
+                <EntityAutocompleteSearch 
                   value={editingItem.organization || ''}
-                  onChange={e => editingItem && setEditingItem({...editingItem, organization: e.target.value})}
-                  className="w-full px-4 py-2 rounded-xl border border-slate-200 focus:ring-2 focus:ring-indigo-500 outline-none transition-all text-sm"
+                  onChange={val => editingItem && setEditingItem({...editingItem, organization: val})}
                 />
               </div>
 

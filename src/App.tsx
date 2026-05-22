@@ -1,10 +1,12 @@
 import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
 import Login from './pages/Login';
 import Dashboard from './pages/Dashboard';
-import Tickets from './pages/Tickets';
 import Improvements from './pages/Improvements';
 import Debts from './pages/Debts';
+import UpdatePassword from './pages/UpdatePassword';
 import DataRequests from './pages/DataRequests';
+import Entities from './pages/Entities';
+import EntityDetails from './pages/EntityDetails';
 import Users from './pages/Users';
 import Report from './pages/Report';
 import { UserProvider, useUser } from './contexts/UserContext';
@@ -24,11 +26,13 @@ function AppRoutes() {
   return (
     <Routes>
       <Route path="/login" element={<Login />} />
+      <Route path="/update-password" element={<UpdatePassword />} />
       <Route path="/" element={<ProtectedRoute><Dashboard /></ProtectedRoute>} />
-      <Route path="/tickets" element={<ProtectedRoute><Tickets /></ProtectedRoute>} />
       <Route path="/improvements" element={<ProtectedRoute><Improvements /></ProtectedRoute>} />
       <Route path="/debts" element={<ProtectedRoute><Debts /></ProtectedRoute>} />
       <Route path="/data-requests" element={<ProtectedRoute><DataRequests /></ProtectedRoute>} />
+      <Route path="/entities" element={<ProtectedRoute><Entities /></ProtectedRoute>} />
+      <Route path="/entities/:id" element={<ProtectedRoute><EntityDetails /></ProtectedRoute>} />
       <Route path="/report" element={<ProtectedRoute><Report /></ProtectedRoute>} />
       <Route path="/users" element={<ProtectedRoute><Users /></ProtectedRoute>} />
     </Routes>

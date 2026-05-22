@@ -9,7 +9,8 @@ import {
   LogOut, 
   User as UserIcon,
   Menu,
-  X
+  X,
+  Landmark
 } from 'lucide-react'
 import { useState } from 'react'
 
@@ -21,7 +22,7 @@ export default function MainLayout({ children }: { children: ReactNode }) {
 
   const navItems = [
     { name: 'Dashboard', path: '/', icon: LayoutDashboard },
-    { name: 'Tickets', path: '/tickets', icon: Ticket },
+    { name: 'Entidades', path: '/entities', icon: Landmark },
     { name: 'Melhorias', path: '/improvements', icon: TrendingUp },
     { name: 'Débitos Técnicos', path: '/debts', icon: AlertCircle },
   ]

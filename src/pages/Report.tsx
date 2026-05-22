@@ -164,9 +164,8 @@ export default function Report() {
   const improvements = stats ? filterOpen(stats.lists.improvements) : [];
   const debts = stats ? filterOpen(stats.lists.debts) : [];
   const dataRequests = stats ? filterOpen(stats.lists.dataRequests) : [];
-  const tickets = stats ? filterOpen(stats.lists.tickets) : [];
 
-  const totalOpen = tickets.length + improvements.length + debts.length + dataRequests.length;
+  const totalOpen = improvements.length + debts.length + dataRequests.length;
 
   const handlePrint = () => window.print();
 
@@ -283,15 +282,6 @@ export default function Report() {
                   <p className="text-3xl font-bold text-slate-900">{totalOpen}</p>
                 </div>
                 <div 
-                  onClick={() => setSelectedType(prev => prev === 'TICKETS' ? 'ALL' : 'TICKETS')}
-                  className={`bg-blue-50 border rounded-2xl p-5 print:shadow-none print:border print:rounded-lg cursor-pointer transition-all ${selectedType === 'TICKETS' ? 'ring-2 ring-blue-500 border-blue-500 shadow-md' : 'border-blue-100 shadow-sm hover:border-blue-300'}`}
-                >
-                  <p className="text-xs font-bold text-blue-600 uppercase mb-1 flex items-center gap-1">
-                    <Ticket className="w-3 h-3" /> Tickets
-                  </p>
-                  <p className="text-3xl font-bold text-blue-700">{tickets.length}</p>
-                </div>
-                <div 
                   onClick={() => setSelectedType(prev => prev === 'IMPROVEMENTS' ? 'ALL' : 'IMPROVEMENTS')}
                   className={`bg-emerald-50 border rounded-2xl p-5 print:shadow-none print:border print:rounded-lg cursor-pointer transition-all ${selectedType === 'IMPROVEMENTS' ? 'ring-2 ring-emerald-500 border-emerald-500 shadow-md' : 'border-emerald-100 shadow-sm hover:border-emerald-300'}`}
                 >
@@ -322,14 +312,6 @@ export default function Report() {
 
               {/* Tables */}
               <div className="space-y-6">
-                {(selectedType === 'ALL' || selectedType === 'TICKETS') && (
-                  <SectionTable
-                    title="Tickets em Aberto"
-                    icon={<Ticket className="w-4 h-4 text-blue-600" />}
-                    color="border-blue-100"
-                    items={tickets}
-                  />
-                )}
                 {(selectedType === 'ALL' || selectedType === 'IMPROVEMENTS') && (
                   <SectionTable
                     title="Melhorias em Aberto"

@@ -13,7 +13,7 @@ import {
   Legend
 } from 'recharts';
 import Layout from '../components/layouts/Layout';
-import { Ticket, TrendingUp, AlertCircle, CheckCircle2, Database } from 'lucide-react';
+import { TrendingUp, AlertCircle, CheckCircle2, Database } from 'lucide-react';
 import { dashboardService } from '../services/api';
 
 const COLORS = ['#3b82f6', '#10b981', '#f59e0b', '#ef4444', '#8b5cf6'];
@@ -77,7 +77,6 @@ export default function Dashboard() {
   };
 
   const statusPieData = [
-    ...stats.byStatus.tickets.map((s: any) => ({ name: `T: ${translateStatus(s.status)}`, value: s._count })),
     ...stats.byStatus.improvements.map((s: any) => ({ name: `M: ${translateStatus(s.status)}`, value: s._count })),
     ...stats.byStatus.debts.map((s: any) => ({ name: `D: ${translateStatus(s.status)}`, value: s._count })),
     ...stats.byStatus.dataRequests.map((s: any) => ({ name: `DR: ${translateStatus(s.status)}`, value: s._count })),
@@ -85,14 +84,12 @@ export default function Dashboard() {
 
   const analystBarData = stats.byAnalyst.map((a: any) => ({
     name: a.name,
-    tickets: a._count.tickets,
     improvements: a._count.improvements,
     debts: a._count.debts,
     dataRequests: a._count.dataRequests
   }));
 
   const cards = [
-    { id: 'tickets', label: 'Total Tickets', value: stats.totals.tickets, icon: Ticket, color: 'text-blue-600', bg: 'bg-blue-50' },
     { id: 'improvements', label: 'Total Melhorias', value: stats.totals.improvements, icon: TrendingUp, color: 'text-emerald-600', bg: 'bg-emerald-50' },
     { id: 'debts', label: 'Total Débitos', value: stats.totals.debts, icon: AlertCircle, color: 'text-amber-600', bg: 'bg-amber-50' },
     { id: 'data-requests', label: 'Total de solicitações realizadas para dados', value: stats.totals.dataRequests, icon: Database, color: 'text-indigo-600', bg: 'bg-indigo-50' },
@@ -100,13 +97,11 @@ export default function Dashboard() {
   ];
 
   const getSelectedData = () => {
-    if (selectedCategory === 'tickets') return stats.lists.tickets.map((item: any) => ({ ...item, type: 'Ticket' }));
     if (selectedCategory === 'improvements') return stats.lists.improvements.map((item: any) => ({ ...item, type: 'Melhoria' }));
     if (selectedCategory === 'debts') return stats.lists.debts.map((item: any) => ({ ...item, type: 'Débito' }));
     if (selectedCategory === 'data-requests') return stats.lists.dataRequests.map((item: any) => ({ ...item, type: 'Dados' }));
     if (selectedCategory === 'all') {
       return [
-        ...stats.lists.tickets.map((item: any) => ({ ...item, type: 'Ticket' })),
         ...stats.lists.improvements.map((item: any) => ({ ...item, type: 'Melhoria' })),
         ...stats.lists.debts.map((item: any) => ({ ...item, type: 'Débito' })),
         ...stats.lists.dataRequests.map((item: any) => ({ ...item, type: 'Dados' }))
@@ -201,7 +196,6 @@ export default function Dashboard() {
                     contentStyle={{ borderRadius: '12px', border: 'none', boxShadow: '0 10px 15px -3px rgb(0 0 0 / 0.1)' }}
                   />
                   <Legend iconType="circle" />
-                  <Bar dataKey="tickets" name="Tickets" fill="#3b82f6" radius={[4, 4, 0, 0]} />
                   <Bar dataKey="improvements" name="Melhorias" fill="#10b981" radius={[4, 4, 0, 0]} />
                   <Bar dataKey="debts" name="Débitos" fill="#f59e0b" radius={[4, 4, 0, 0]} />
                   <Bar dataKey="dataRequests" name="Dados" fill="#8b5cf6" radius={[4, 4, 0, 0]} />
