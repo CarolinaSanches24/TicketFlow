@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { entityService } from '../services/api';
-import { Search, ChevronDown, Check } from 'lucide-react';
+import { Search, ChevronDown, Check, X } from 'lucide-react';
 
 interface EntityAutocompleteSearchProps {
   value: string;
@@ -20,6 +20,11 @@ export default function EntityAutocompleteSearch({
   const [options, setOptions] = useState<{ id: string, name: string }[]>([]);
   const [isOpen, setIsOpen] = useState(false);
   const [loading, setLoading] = useState(false);
+  const [isModalOpen, setIsModalOpen] = useState(false);
+  const [isCreating, setIsCreating] = useState(false);
+  const [newEntityData, setNewEntityData] = useState({
+    name: '', identifier: '', secretariat_type: '', admin_responsible: '', account_manager: '', cs_account_manager: ''
+  });
   
   const wrapperRef = useRef<HTMLDivElement>(null);
 
@@ -71,6 +76,30 @@ export default function EntityAutocompleteSearch({
     opt.name.toLowerCase().includes(query.toLowerCase())
   );
 
+  const openCreateModal = () => {
+    setNewEntityData({
+      name: query, identifier: '', secretariat_type: '', admin_responsible: '', account_manager: '', cs_account_manager: ''
+    });
+    setIsOpen(false);
+    setIsModalOpen(true);
+  };
+
+  const handleCreateEntity = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!newEntityData.name) return;
+    try {
+      setIsCreating(true);
+      const created = await entityService.create(newEntityData);
+      setOptions(prev => [{id: created.id, name: created.name}, ...prev]);
+      selectOption(created.name);
+      setIsModalOpen(false);
+    } catch (err: any) {
+      alert('Erro ao criar organização: ' + (err.message || ''));
+    } finally {
+      setIsCreating(false);
+    }
+  };
+
   return (
     <div className="relative w-full" ref={wrapperRef}>
       <div className="relative flex items-center">
@@ -105,10 +134,90 @@ export default function EntityAutocompleteSearch({
               ))}
             </ul>
           ) : (
-            <div className="p-3 text-xs text-slate-500 text-center">
-              Nenhuma organização encontrada. Será salva como nova.
+            <div className="p-3 text-xs text-slate-500 text-center flex flex-col items-center gap-2">
+              <p>Nenhuma organização encontrada.</p>
+              <button 
+                type="button"
+                onClick={openCreateModal}
+                className="bg-primary-50 text-primary-600 hover:bg-primary-100 font-semibold px-3 py-1.5 rounded-lg transition-colors"
+              >
+                Criar "{query}"
+              </button>
             </div>
           )}
+        </div>
+      )}
+
+      {isModalOpen && (
+        <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-slate-900/50 backdrop-blur-sm overflow-y-auto">
+          <div className="bg-white rounded-2xl w-full max-w-xl shadow-xl my-8">
+            <div className="flex items-center justify-between p-6 border-b border-slate-100">
+              <h2 className="text-xl font-bold text-slate-800">Nova Organização</h2>
+              <button
+                type="button"
+                onClick={() => setIsModalOpen(false)}
+                className="text-slate-400 hover:text-slate-600 transition-colors"
+              >
+                <X className="w-5 h-5" />
+              </button>
+            </div>
+            
+            <div className="p-6">
+              <div className="space-y-4">
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                  <div className="sm:col-span-2">
+                    <label className="block text-sm font-semibold text-slate-700 mb-1">Nome da Organização *</label>
+                    <input
+                      required
+                      value={newEntityData.name}
+                      onChange={e => setNewEntityData({...newEntityData, name: e.target.value})}
+                      className="w-full px-4 py-2 border border-slate-200 rounded-xl focus:ring-2 focus:ring-primary-500 outline-none"
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-sm font-semibold text-slate-700 mb-1">Identificador</label>
+                    <input
+                      value={newEntityData.identifier}
+                      onChange={e => setNewEntityData({...newEntityData, identifier: e.target.value})}
+                      className="w-full px-4 py-2 border border-slate-200 rounded-xl focus:ring-2 focus:ring-primary-500 outline-none"
+                      placeholder="Ex: 00.000.000/0001-00"
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-sm font-semibold text-slate-700 mb-1">Tipo da Secretaria</label>
+                    <select
+                      value={newEntityData.secretariat_type}
+                      onChange={e => setNewEntityData({...newEntityData, secretariat_type: e.target.value})}
+                      className="w-full px-4 py-2 border border-slate-200 rounded-xl focus:ring-2 focus:ring-primary-500 outline-none"
+                    >
+                       <option value="">Selecione...</option>
+                       <option value="Estadual">Estadual</option>
+                       <option value="Municipal">Municipal</option>
+                       <option value="Federal">Federal</option>
+                       <option value="Particular">Particular</option>
+                    </select>
+                  </div>
+                </div>
+              </div>
+              <div className="mt-8 flex justify-end gap-3 pt-6 border-t border-slate-100">
+                <button
+                  type="button"
+                  onClick={() => setIsModalOpen(false)}
+                  className="px-5 py-2.5 text-sm font-semibold text-slate-600 hover:bg-slate-50 rounded-xl transition-all"
+                >
+                  Cancelar
+                </button>
+                <button
+                  type="button"
+                  onClick={handleCreateEntity}
+                  disabled={isCreating}
+                  className="px-5 py-2.5 text-sm font-semibold text-white bg-primary-600 hover:bg-primary-700 rounded-xl transition-all"
+                >
+                  {isCreating ? 'Salvando...' : 'Salvar Organização'}
+                </button>
+              </div>
+            </div>
+          </div>
         </div>
       )}
     </div>

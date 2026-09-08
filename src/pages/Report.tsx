@@ -2,6 +2,7 @@ import { useState, useEffect, useRef } from 'react';
 import Layout from '../components/layouts/Layout';
 import { dashboardService, authService } from '../services/api';
 import { Printer, Filter, TrendingUp, Wrench, Database, AlertCircle, Ticket } from 'lucide-react';
+import EntityAutocompleteSearch from '../components/EntityAutocompleteSearch';
 
 const TRANSLATIONS: Record<string, string> = {
   'PENDING': 'Pendente',
@@ -123,6 +124,10 @@ export default function Report() {
   const [startDate, setStartDate] = useState('');
   const [endDate, setEndDate] = useState('');
   const [selectedAnalyst, setSelectedAnalyst] = useState('');
+  const [filterOrganization, setFilterOrganization] = useState('');
+  const [filterStatus, setFilterStatus] = useState('');
+  const [filterModule, setFilterModule] = useState('');
+  const [filterSubmodule, setFilterSubmodule] = useState('');
   const [selectedType, setSelectedType] = useState<'ALL' | 'TICKETS' | 'IMPROVEMENTS' | 'DEBTS' | 'DATA_REQUESTS'>('ALL');
 
   const printRef = useRef<HTMLDivElement>(null);
@@ -153,13 +158,19 @@ export default function Report() {
     fetchAnalysts();
   }, []);
 
-  const filterByAnalyst = (items: any[]) => {
-    if (!selectedAnalyst) return items;
-    return items.filter((i: any) => i.analyst?.name === selectedAnalyst);
+  const filterByAdvanced = (items: any[]) => {
+    return items.filter((i: any) => {
+      const matchAnalyst = !selectedAnalyst || i.analyst?.name === selectedAnalyst;
+      const matchOrganization = !filterOrganization || (i.organization && i.organization.toLowerCase().includes(filterOrganization.toLowerCase()));
+      const matchStatus = !filterStatus || i.status === filterStatus;
+      const matchModule = !filterModule || (i.module && i.module.toLowerCase().includes(filterModule.toLowerCase()));
+      const matchSubmodule = !filterSubmodule || (i.submodule && i.submodule.toLowerCase().includes(filterSubmodule.toLowerCase()));
+      return matchAnalyst && matchOrganization && matchStatus && matchModule && matchSubmodule;
+    });
   };
 
   const filterOpen = (items: any[]) =>
-    filterByAnalyst(items).filter((i: any) => isOpen(i.status));
+    filterByAdvanced(items).filter((i: any) => !filterStatus ? isOpen(i.status) : true);
 
   const improvements = stats ? filterOpen(stats.lists.improvements) : [];
   const debts = stats ? filterOpen(stats.lists.debts) : [];
@@ -231,11 +242,53 @@ export default function Report() {
                 onChange={e => setSelectedAnalyst(e.target.value)}
                 className="w-full px-3 py-2 rounded-xl border border-slate-200 focus:ring-2 focus:ring-primary-500 outline-none text-sm bg-white"
               >
-                <option value="">Todos os analistas</option>
+                <option value="">Todos</option>
                 {analysts.map(a => (
                   <option key={a.id} value={a.name}>{a.name}</option>
                 ))}
               </select>
+            </div>
+            <div>
+              <label className="block text-xs font-bold text-slate-500 mb-1 uppercase">Organização</label>
+              <EntityAutocompleteSearch
+                value={filterOrganization}
+                onChange={setFilterOrganization}
+                placeholder="Buscar organização cadastrada..."
+                className="w-full px-3 py-2 rounded-xl border border-slate-200 focus:ring-2 focus:ring-primary-500 outline-none text-sm bg-white"
+              />
+            </div>
+            <div>
+              <label className="block text-xs font-bold text-slate-500 mb-1 uppercase">Status</label>
+              <select
+                value={filterStatus}
+                onChange={e => setFilterStatus(e.target.value)}
+                className="w-full px-3 py-2 rounded-xl border border-slate-200 focus:ring-2 focus:ring-primary-500 outline-none text-sm bg-white"
+              >
+                <option value="">Status em Aberto</option>
+                {Object.keys(TRANSLATIONS).map(k => (
+                  <option key={k} value={k}>{TRANSLATIONS[k]}</option>
+                ))}
+              </select>
+            </div>
+            <div>
+              <label className="block text-xs font-bold text-slate-500 mb-1 uppercase">Módulo</label>
+              <input
+                type="text"
+                placeholder="Módulo"
+                value={filterModule}
+                onChange={e => setFilterModule(e.target.value)}
+                className="w-full px-3 py-2 rounded-xl border border-slate-200 focus:ring-2 focus:ring-primary-500 outline-none text-sm"
+              />
+            </div>
+            <div>
+              <label className="block text-xs font-bold text-slate-500 mb-1 uppercase">Submódulo</label>
+              <input
+                type="text"
+                placeholder="Submódulo"
+                value={filterSubmodule}
+                onChange={e => setFilterSubmodule(e.target.value)}
+                className="w-full px-3 py-2 rounded-xl border border-slate-200 focus:ring-2 focus:ring-primary-500 outline-none text-sm"
+              />
             </div>
             <div className="flex items-end gap-2">
               <button
@@ -244,9 +297,9 @@ export default function Report() {
               >
                 Aplicar
               </button>
-              {(startDate || endDate || selectedAnalyst) && (
+              {(startDate || endDate || selectedAnalyst || filterOrganization || filterStatus || filterModule || filterSubmodule) && (
                 <button
-                  onClick={() => { setStartDate(''); setEndDate(''); setSelectedAnalyst(''); fetchData(); }}
+                  onClick={() => { setStartDate(''); setEndDate(''); setSelectedAnalyst(''); setFilterOrganization(''); setFilterStatus(''); setFilterModule(''); setFilterSubmodule(''); fetchData(); }}
                   className="px-4 py-2 text-sm font-semibold text-slate-500 hover:text-slate-700 rounded-xl border border-slate-200 hover:bg-slate-50 transition-all"
                 >
                   Limpar

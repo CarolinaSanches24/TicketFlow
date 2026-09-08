@@ -40,6 +40,9 @@ export default function Dashboard() {
   const [selectedCategory, setSelectedCategory] = useState<string | null>(null);
   const [filterAnalyst, setFilterAnalyst] = useState('');
   const [filterStatus, setFilterStatus] = useState('');
+  const [filterOrganization, setFilterOrganization] = useState('');
+  const [filterModule, setFilterModule] = useState('');
+  const [filterSubmodule, setFilterSubmodule] = useState('');
 
   const fetchStats = async () => {
     try {
@@ -115,7 +118,10 @@ export default function Dashboard() {
   const selectedData = rawSelectedData.filter((item: any) => {
     const analystMatch = !filterAnalyst || item.analyst?.name === filterAnalyst;
     const statusMatch = !filterStatus || item.status === filterStatus;
-    return analystMatch && statusMatch;
+    const orgMatch = !filterOrganization || (item.organization && item.organization.toLowerCase().includes(filterOrganization.toLowerCase()));
+    const moduleMatch = !filterModule || (item.module && item.module.toLowerCase().includes(filterModule.toLowerCase()));
+    const submoduleMatch = !filterSubmodule || (item.submodule && item.submodule.toLowerCase().includes(filterSubmodule.toLowerCase()));
+    return analystMatch && statusMatch && orgMatch && moduleMatch && submoduleMatch;
   });
 
   const availableStatuses = [...new Set(rawSelectedData.map((item: any) => item.status))];
@@ -262,16 +268,37 @@ export default function Dashboard() {
                       <option key={s} value={s}>{translateStatus(s)}</option>
                     ))}
                   </select>
-                  {(filterAnalyst || filterStatus) && (
+                  <input
+                    type="text"
+                    placeholder="Organização"
+                    value={filterOrganization}
+                    onChange={e => setFilterOrganization(e.target.value)}
+                    className="text-sm border border-slate-200 rounded-lg px-3 py-1.5 text-slate-600 focus:ring-2 focus:ring-primary-500 outline-none bg-white w-32"
+                  />
+                  <input
+                    type="text"
+                    placeholder="Módulo"
+                    value={filterModule}
+                    onChange={e => setFilterModule(e.target.value)}
+                    className="text-sm border border-slate-200 rounded-lg px-3 py-1.5 text-slate-600 focus:ring-2 focus:ring-primary-500 outline-none bg-white w-24"
+                  />
+                  <input
+                    type="text"
+                    placeholder="Submódulo"
+                    value={filterSubmodule}
+                    onChange={e => setFilterSubmodule(e.target.value)}
+                    className="text-sm border border-slate-200 rounded-lg px-3 py-1.5 text-slate-600 focus:ring-2 focus:ring-primary-500 outline-none bg-white w-28"
+                  />
+                  {(filterAnalyst || filterStatus || filterOrganization || filterModule || filterSubmodule) && (
                     <button
-                      onClick={() => { setFilterAnalyst(''); setFilterStatus(''); }}
+                      onClick={() => { setFilterAnalyst(''); setFilterStatus(''); setFilterOrganization(''); setFilterModule(''); setFilterSubmodule(''); }}
                       className="text-xs font-bold text-primary-600 hover:text-primary-700 px-2 py-1.5"
                     >
                       Limpar filtros
                     </button>
                   )}
                   <button
-                    onClick={() => { setSelectedCategory(null); setFilterAnalyst(''); setFilterStatus(''); }}
+                    onClick={() => { setSelectedCategory(null); setFilterAnalyst(''); setFilterStatus(''); setFilterOrganization(''); setFilterModule(''); setFilterSubmodule(''); }}
                     className="text-sm font-bold text-slate-400 hover:text-slate-600"
                   >
                     Fechar

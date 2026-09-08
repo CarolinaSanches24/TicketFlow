@@ -21,6 +21,8 @@ interface Improvement {
   analyst_id: string | null;
   analyst?: { name: string };
   organization?: string | null;
+  module?: string | null;
+  submodule?: string | null;
   opened_at: string | null;
   created_at: string;
 }
@@ -60,7 +62,9 @@ export default function Improvements() {
     description: '',
     analystId: '',
     organization: '',
-    opened_at: ''
+    opened_at: '',
+    module: '',
+    submodule: ''
   });
 
   // Edit/Delete States
@@ -106,11 +110,13 @@ export default function Improvements() {
     analyst_id: newItem.analystId || null,
     organization: newItem.organization || null,
     opened_at: newItem.opened_at || null,
+    module: newItem.module || null,
+    submodule: newItem.submodule || null,
     status: 'OPEN'
   });
   
   setIsModalOpen(false);
-  setNewItem({ external_id: '', external_url: '', title: '', description: '', analystId: '', organization: '', opened_at: '' });
+  setNewItem({ external_id: '', external_url: '', title: '', description: '', analystId: '', organization: '', opened_at: '', module: '', submodule: '' });
       fetchItems();
     } catch (error) {
       alert('Erro ao criar melhoria');
@@ -142,6 +148,8 @@ export default function Improvements() {
     analyst_id: editingItem.analyst_id,
     organization: editingItem.organization,
     opened_at: editingItem.opened_at,
+    module: editingItem.module,
+    submodule: editingItem.submodule,
     status: editingItem.status
   });
       setEditingItem(null);
@@ -505,6 +513,29 @@ export default function Improvements() {
                 />
               </div>
 
+              <div className="grid grid-cols-2 gap-4">
+                <div>
+                  <label className="block text-sm font-semibold text-slate-700 mb-1">Módulo</label>
+                  <input 
+                    type="text" 
+                    value={newItem.module}
+                    onChange={e => setNewItem({...newItem, module: e.target.value})}
+                    className="w-full px-4 py-2 rounded-xl border border-slate-200 focus:ring-2 focus:ring-primary-500 outline-none transition-all text-sm"
+                    placeholder="Ex: Financeiro"
+                  />
+                </div>
+                <div>
+                  <label className="block text-sm font-semibold text-slate-700 mb-1">Submódulo</label>
+                  <input 
+                    type="text" 
+                    value={newItem.submodule}
+                    onChange={e => setNewItem({...newItem, submodule: e.target.value})}
+                    className="w-full px-4 py-2 rounded-xl border border-slate-200 focus:ring-2 focus:ring-primary-500 outline-none transition-all text-sm"
+                    placeholder="Ex: Contas a Pagar"
+                  />
+                </div>
+              </div>
+
               <div>
                 <label className="block text-sm font-semibold text-slate-700 mb-1">Analista (Opcional)</label>
                 <select 
@@ -611,6 +642,27 @@ export default function Improvements() {
                   onChange={e => editingItem && setEditingItem({...editingItem, description: e.target.value})}
                   className="w-full px-4 py-2 rounded-xl border border-slate-200 focus:ring-2 focus:ring-primary-500 outline-none transition-all text-sm resize-none"
                 />
+              </div>
+
+              <div className="grid grid-cols-2 gap-4">
+                <div>
+                  <label className="block text-sm font-semibold text-slate-700 mb-1">Módulo</label>
+                  <input 
+                    type="text" 
+                    value={editingItem.module || ''}
+                    onChange={e => editingItem && setEditingItem({...editingItem, module: e.target.value})}
+                    className="w-full px-4 py-2 rounded-xl border border-slate-200 focus:ring-2 focus:ring-primary-500 outline-none transition-all text-sm"
+                  />
+                </div>
+                <div>
+                  <label className="block text-sm font-semibold text-slate-700 mb-1">Submódulo</label>
+                  <input 
+                    type="text" 
+                    value={editingItem.submodule || ''}
+                    onChange={e => editingItem && setEditingItem({...editingItem, submodule: e.target.value})}
+                    className="w-full px-4 py-2 rounded-xl border border-slate-200 focus:ring-2 focus:ring-primary-500 outline-none transition-all text-sm"
+                  />
+                </div>
               </div>
 
               <div>

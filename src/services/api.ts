@@ -545,3 +545,25 @@ function aggregateByStatus(items: any[] | null) {
   });
   return Object.keys(counts).map(status => ({ status, _count: counts[status] }));
 }
+
+export const evaluationCriteriaConfigService = {
+  getAll: async () => {
+    const { data, error } = await supabase.from('evaluation_criteria_config').select('*').order('created_at', { ascending: false });
+    if (error) throw error;
+    return data;
+  },
+  create: async (payload: any) => {
+    const { data, error } = await supabase.from('evaluation_criteria_config').insert([payload]).select().single();
+    if (error) throw error;
+    return data;
+  },
+  update: async (id: string, payload: any) => {
+    const { data, error } = await supabase.from('evaluation_criteria_config').update(payload).eq('id', id).select().single();
+    if (error) throw error;
+    return data;
+  },
+  delete: async (id: string) => {
+    const { error } = await supabase.from('evaluation_criteria_config').delete().eq('id', id);
+    if (error) throw error;
+  }
+};

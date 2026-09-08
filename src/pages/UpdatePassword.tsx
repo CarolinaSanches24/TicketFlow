@@ -4,6 +4,7 @@ import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
 import { authService } from '../services/api';
+import { translateAuthError } from '../utils/errorTranslations';
 import { Lock, AlertCircle, CheckCircle2, Eye, EyeOff } from 'lucide-react';
 import { supabase } from '../lib/supabaseClient';
 
@@ -52,7 +53,7 @@ export default function UpdatePassword() {
         navigate('/');
       }, 3000);
     } catch (err: any) {
-      setError(err.message || 'Erro ao atualizar a senha');
+      setError(translateAuthError(err.message || 'Erro ao atualizar a senha'));
     }
   };
 

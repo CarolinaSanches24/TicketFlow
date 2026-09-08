@@ -9,6 +9,7 @@ import Entities from './pages/Entities';
 import EntityDetails from './pages/EntityDetails';
 import Users from './pages/Users';
 import Report from './pages/Report';
+import EvaluationCriteria from './pages/EvaluationCriteria';
 import { UserProvider, useUser } from './contexts/UserContext';
 
 const ProtectedRoute = ({ children }: { children: React.ReactNode }) => {
@@ -33,6 +34,7 @@ function AppRoutes() {
       <Route path="/data-requests" element={<ProtectedRoute><DataRequests /></ProtectedRoute>} />
       <Route path="/entities" element={<ProtectedRoute><Entities /></ProtectedRoute>} />
       <Route path="/entities/:id" element={<ProtectedRoute><EntityDetails /></ProtectedRoute>} />
+      <Route path="/evaluation-criteria" element={<ProtectedRoute><EvaluationCriteria /></ProtectedRoute>} />
       <Route path="/report" element={<ProtectedRoute><Report /></ProtectedRoute>} />
       <Route path="/users" element={<ProtectedRoute><Users /></ProtectedRoute>} />
     </Routes>

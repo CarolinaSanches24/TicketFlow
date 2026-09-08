@@ -4,6 +4,7 @@ import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
 import { useUser } from '../contexts/UserContext';
 import { authService } from '../services/api';
+import { translateAuthError } from '../utils/errorTranslations';
 import { LogIn, AlertCircle, Mail, CheckCircle2, ArrowLeft, Eye, EyeOff } from 'lucide-react';
 import { useState, useEffect } from 'react';
 
@@ -51,7 +52,7 @@ export default function Login() {
       await authService.login(data);
       // O redirecionamento será tratado pelo useEffect acima
     } catch (err: any) {
-      setError(err.message || 'Erro ao entrar no sistema');
+      setError(translateAuthError(err.message || 'Erro ao entrar no sistema'));
     }
   };
 
@@ -63,7 +64,7 @@ export default function Login() {
       setResetSuccess('Mensagem enviada com sucesso! Cheque as instruções de recuperação no seu E-mail.');
       resetForm.reset();
     } catch (err: any) {
-      setError(err.message || 'Erro ao enviar email de recuperação');
+      setError(translateAuthError(err.message || 'Erro ao enviar email de recuperação'));
     }
   };
 
