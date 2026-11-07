@@ -88,27 +88,60 @@ CREATE POLICY "Users can update own profile" ON profiles FOR UPDATE USING (auth.
 CREATE POLICY "Admins can manage all profiles" ON profiles FOR ALL TO authenticated 
 USING (public.is_admin())
 WITH CHECK (public.is_admin());
+CREATE POLICY "Allow trigger insert" ON profiles FOR INSERT WITH CHECK (true);
 
 -- Trigger to sync auth.users metadata to profiles
-CREATE OR REPLACE FUNCTION handle_new_user() 
-RETURNS TRIGGER AS $$
+CREATE OR REPLACE FUNCTION public.handle_new_user() 
+RETURNS TRIGGER 
+LANGUAGE plpgsql 
+SECURITY DEFINER 
+SET search_path = public, auth
+AS $$
+DECLARE
+  v_name TEXT;
+  v_role public.user_role;
+  v_email TEXT;
 BEGIN
-  INSERT INTO public.profiles (id, name, role, email)
+  v_email := lower(trim(new.email));
+  v_name := COALESCE(NULLIF(trim(new.raw_user_meta_data->>'name'), ''), 'Usuário');
+  
+  IF UPPER(COALESCE(new.raw_user_meta_data->>'role', '')) = 'ADMIN' THEN
+    v_role := 'ADMIN'::public.user_role;
+  ELSE
+    v_role := 'ANALYST'::public.user_role;
+  END IF;
+
+  DELETE FROM public.profiles WHERE lower(email) = v_email AND id <> new.id;
+
+  INSERT INTO public.profiles (id, name, role, email, deleted_at, updated_at)
   VALUES (
     new.id, 
-    COALESCE(new.raw_user_meta_data->>'name', 'Usuário'),
-    COALESCE(new.raw_user_meta_data->>'role', 'ANALYST')::user_role,
-    new.email
-  );
+    v_name,
+    v_role,
+    v_email,
+    NULL,
+    now()
+  )
+  ON CONFLICT (id) DO UPDATE SET
+    name = EXCLUDED.name,
+    role = EXCLUDED.role,
+    email = EXCLUDED.email,
+    deleted_at = NULL,
+    updated_at = now();
+
   RETURN NEW;
+EXCEPTION
+  WHEN OTHERS THEN
+    RAISE WARNING 'Aviso em handle_new_user para o usuário %: %', new.id, SQLERRM;
+    RETURN NEW;
 END;
-$$ LANGUAGE plpgsql SECURITY DEFINER;
+$$;
 
 -- Recreate trigger (drop first to be safe)
 DROP TRIGGER IF EXISTS on_auth_user_created ON auth.users;
 CREATE TRIGGER on_auth_user_created
   AFTER INSERT ON auth.users
-  FOR EACH ROW EXECUTE PROCEDURE public.handle_new_user();
+  FOR EACH ROW EXECUTE FUNCTION public.handle_new_user();
 
 -- Update user_data view to use profiles table (only active users)
 CREATE OR REPLACE VIEW user_data AS

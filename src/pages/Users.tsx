@@ -76,6 +76,11 @@ export default function Users() {
     e.preventDefault();
     if (!newUser.email || !newUser.password || !newUser.name) return;
 
+    if (newUser.password.length < 6) {
+      alert('A senha deve ter no mínimo 6 caracteres.');
+      return;
+    }
+
     try {
       setIsSubmitting(true);
       await authService.createUser(newUser, currentUser?.id || '');

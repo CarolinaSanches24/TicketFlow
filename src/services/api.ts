@@ -1,4 +1,4 @@
-import { supabase } from '../lib/supabaseClient';
+import { supabase, createIsolatedAuthClient } from '../lib/supabaseClient';
 
 export const authService = {
   login: async (credentials: any) => {
@@ -58,29 +58,75 @@ export const authService = {
   },
 
   createUser: async (userData: any, creatorId: string) => {
-    // Standard signUp
-    const { data, error } = await supabase.auth.signUp({
-      email: userData.email,
+    const emailNormalized = userData.email?.trim().toLowerCase();
+
+    // 1. Verificar se o e-mail já existe na base de dados (ativo ou soft-deleted)
+    const { data: existingProfile } = await supabase
+      .from('profiles')
+      .select('id, name, deleted_at')
+      .ilike('email', emailNormalized)
+      .maybeSingle();
+
+    if (existingProfile) {
+      if (existingProfile.deleted_at) {
+        throw new Error('Este e-mail pertence a um usuário que está na lixeira (desativado). Você pode restaurá-lo na aba "Usuários Desativados".');
+      } else {
+        throw new Error('Já existe um usuário ativo cadastrado com este e-mail.');
+      }
+    }
+
+    // 2. Realizar cadastro com cliente isolado (não sobrescreve a sessão do admin logado)
+    const isolatedClient = createIsolatedAuthClient();
+    const { data, error } = await isolatedClient.auth.signUp({
+      email: emailNormalized,
       password: userData.password,
       options: {
         data: {
-          name: userData.name,
+          name: userData.name?.trim(),
           role: userData.role
         }
       }
     });
 
-    if (error) throw error;
+    if (error) {
+      if (error.message.includes('Database error saving new user')) {
+        throw new Error('Erro no banco de dados ao salvar o usuário. É necessário rodar o script de atualização da trigger no SQL Editor do Supabase (supabase/fix_user_creation_trigger.sql).');
+      }
+      throw error;
+    }
 
-    // Log the creation
+    // Se o Supabase tiver confirmação de e-mail e o usuário já existir no Auth, identities virá vazio
+    if (data.user && Array.isArray(data.user.identities) && data.user.identities.length === 0) {
+      throw new Error('Este e-mail já possui cadastro no sistema de autenticação.');
+    }
+
+    // 3. Garantir o perfil na tabela profiles (upsert de segurança caso o trigger demore)
     if (data.user) {
-      await supabase.from('user_audit_logs').insert([{
-        target_user_id: data.user.id,
-        target_user_email: userData.email,
-        action: 'CREATE',
-        details: `Criado com perfil ${userData.role}`,
-        creator_id: creatorId
-      }]);
+      try {
+        await supabase.from('profiles').upsert({
+          id: data.user.id,
+          name: userData.name?.trim() || 'Usuário',
+          role: userData.role || 'ANALYST',
+          email: emailNormalized,
+          deleted_at: null,
+          updated_at: new Date().toISOString()
+        }, { onConflict: 'id' });
+      } catch (upsertErr) {
+        console.warn('[createUser] Aviso ao sincronizar perfil diretamente:', upsertErr);
+      }
+
+      // 4. Registrar log de auditoria
+      try {
+        await supabase.from('user_audit_logs').insert([{
+          target_user_id: data.user.id,
+          target_user_email: emailNormalized,
+          action: 'CREATE',
+          details: `Criado com perfil ${userData.role}`,
+          creator_id: creatorId || null
+        }]);
+      } catch (logErr) {
+        console.warn('[createUser] Erro ao registrar log de auditoria:', logErr);
+      }
     }
 
     return data.user;
