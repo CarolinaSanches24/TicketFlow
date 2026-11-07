@@ -10,8 +10,11 @@ import {
 } from '../services/api';
 import { 
   ArrowLeft, FileText, ClipboardList, Building2, PackagePlus, 
-  Plus, Trash2, Pencil, CheckCircle2, ChevronRight, Save, X
+  Plus, Trash2, Pencil, CheckCircle2, ChevronRight, Save, X,
+  Download, Upload, FileSpreadsheet
 } from 'lucide-react';
+import { downloadUnitsCsvTemplate } from '../utils/csvUnitsParser';
+import BatchUnitImportModal from '../components/entities/BatchUnitImportModal';
 
 type TabState = 'evaluations' | 'modules' | 'units' | 'documents';
 
@@ -31,6 +34,7 @@ export default function EntityDetails() {
   // Modals & UI states
   const [loading, setLoading] = useState(true);
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [isImportModalOpen, setIsImportModalOpen] = useState(false);
 
   // Forms
   const [formVisible, setFormVisible] = useState(false);
@@ -175,12 +179,34 @@ export default function EntityDetails() {
               </h2>
             </div>
             {!formVisible && (
-               <button 
-                onClick={() => openForm()}
-                className="flex items-center gap-2 bg-slate-900 hover:bg-slate-800 text-white px-4 py-2 rounded-xl font-semibold shadow-md transition-all active:scale-[0.98] text-sm"
-              >
-                <Plus className="w-4 h-4" /> Adicionar
-              </button>
+              <div className="flex items-center gap-2.5">
+                {activeTab === 'units' && (
+                  <>
+                    <button 
+                      type="button"
+                      onClick={downloadUnitsCsvTemplate}
+                      className="flex items-center gap-2 bg-white hover:bg-slate-50 text-slate-700 border border-slate-200 px-3.5 py-2 rounded-xl font-semibold shadow-xs transition-all active:scale-[0.98] text-sm"
+                      title="Baixar arquivo modelo de importação CSV pré-formatado"
+                    >
+                      <Download className="w-4 h-4 text-slate-500" /> Baixar Modelo CSV
+                    </button>
+                    <button 
+                      type="button"
+                      onClick={() => setIsImportModalOpen(true)}
+                      className="flex items-center gap-2 bg-primary-50 hover:bg-primary-100 text-primary-700 border border-primary-200 px-3.5 py-2 rounded-xl font-semibold shadow-xs transition-all active:scale-[0.98] text-sm"
+                      title="Importar lista de unidades via arquivo CSV"
+                    >
+                      <Upload className="w-4 h-4 text-primary-600" /> Importar CSV
+                    </button>
+                  </>
+                )}
+                <button 
+                  onClick={() => openForm()}
+                  className="flex items-center gap-2 bg-slate-900 hover:bg-slate-800 text-white px-4 py-2 rounded-xl font-semibold shadow-md transition-all active:scale-[0.98] text-sm"
+                >
+                  <Plus className="w-4 h-4" /> Adicionar
+                </button>
+              </div>
             )}
           </div>
 
@@ -286,21 +312,75 @@ export default function EntityDetails() {
                   <>
                     {/* Units Table */}
                     {activeTab === 'units' && (
-                       units.length === 0 ? <p className="text-center text-slate-500 p-8">Nenhuma unidade escolar encontrada nesta rede.</p> :
-                       <div className="space-y-3">
-                         {units.map(item => (
-                           <div key={item.id} className="bg-white border border-slate-200 p-4 rounded-xl flex items-center justify-between hover:border-primary-300 transition-colors">
-                              <div>
-                                <h4 className="font-bold text-slate-900 text-lg flex items-center gap-2"><Building2 className="w-4 h-4 text-primary-500"/> {item.unit_name}</h4>
-                                <p className="text-sm text-slate-600 mt-1">Diretor(a): <b>{item.director_name || 'N/A'}</b> • Seç.: <b>{item.secretary_name || 'N/A'}</b></p>
-                              </div>
-                              <div className="flex gap-2">
-                                <button onClick={() => openForm(item)} className="p-2 text-slate-400 hover:text-primary-600 bg-slate-50 hover:bg-primary-50 rounded-lg"><Pencil className="w-4 h-4" /></button>
-                                <button onClick={() => handleDelete(item.id)} className="p-2 text-slate-400 hover:text-red-600 bg-slate-50 hover:bg-red-50 rounded-lg"><Trash2 className="w-4 h-4" /></button>
-                              </div>
+                       units.length === 0 ? (
+                         <div className="text-center p-10 bg-white rounded-2xl border border-dashed border-slate-200">
+                           <div className="w-12 h-12 bg-primary-50 text-primary-600 rounded-2xl flex items-center justify-center mx-auto mb-3">
+                             <Building2 className="w-6 h-6" />
                            </div>
-                         ))}
-                       </div>
+                           <h4 className="font-bold text-slate-800 text-base">Nenhuma unidade escolar encontrada</h4>
+                           <p className="text-sm text-slate-500 mt-1 mb-5 max-w-md mx-auto">
+                             Cadastre as unidades escolares desta rede manualmente ou faça a importação em lote via arquivo CSV.
+                           </p>
+                           <div className="flex flex-wrap items-center justify-center gap-3">
+                             <button
+                               type="button"
+                               onClick={downloadUnitsCsvTemplate}
+                               className="flex items-center gap-2 bg-white hover:bg-slate-50 text-slate-700 border border-slate-200 px-4 py-2 rounded-xl text-sm font-semibold shadow-xs transition-colors"
+                             >
+                               <Download className="w-4 h-4 text-slate-500" /> Baixar Modelo CSV
+                             </button>
+                             <button
+                               type="button"
+                               onClick={() => setIsImportModalOpen(true)}
+                               className="flex items-center gap-2 bg-primary-600 hover:bg-primary-700 text-white px-4 py-2 rounded-xl text-sm font-semibold shadow-sm transition-colors"
+                             >
+                               <Upload className="w-4 h-4" /> Importar via CSV
+                             </button>
+                             <button
+                               type="button"
+                               onClick={() => openForm()}
+                               className="flex items-center gap-2 bg-slate-900 hover:bg-slate-800 text-white px-4 py-2 rounded-xl text-sm font-semibold shadow-sm transition-colors"
+                             >
+                               <Plus className="w-4 h-4" /> Adicionar Manual
+                             </button>
+                           </div>
+                         </div>
+                       ) : (
+                        <div className="space-y-3">
+                          {units.map(item => (
+                            <div key={item.id} className="bg-white border border-slate-200 p-4 rounded-xl flex items-center justify-between hover:border-primary-300 transition-colors">
+                               <div className="space-y-1">
+                                 <div className="flex items-center gap-2.5">
+                                   <h4 className="font-bold text-slate-900 text-base flex items-center gap-2">
+                                     <Building2 className="w-4 h-4 text-primary-500"/> {item.unit_name}
+                                   </h4>
+                                   {item.status && (
+                                     <span className={`text-[10px] font-bold px-2 py-0.5 rounded-full ${
+                                       item.status === 'ACTIVE' 
+                                         ? 'bg-emerald-100 text-emerald-700' 
+                                         : 'bg-slate-100 text-slate-600'
+                                     }`}>
+                                       {item.status === 'ACTIVE' ? 'Ativa' : item.status}
+                                     </span>
+                                   )}
+                                 </div>
+                                 <p className="text-sm text-slate-600">
+                                   Diretor(a): <b>{item.director_name || 'N/A'}</b> • Seç.: <b>{item.secretary_name || 'N/A'}</b>
+                                 </p>
+                                 {item.course_offers && (
+                                   <p className="text-xs text-slate-500">
+                                     Cursos: <span className="text-slate-700 font-medium">{item.course_offers}</span>
+                                   </p>
+                                 )}
+                               </div>
+                               <div className="flex gap-2">
+                                 <button onClick={() => openForm(item)} className="p-2 text-slate-400 hover:text-primary-600 bg-slate-50 hover:bg-primary-50 rounded-lg"><Pencil className="w-4 h-4" /></button>
+                                 <button onClick={() => handleDelete(item.id)} className="p-2 text-slate-400 hover:text-red-600 bg-slate-50 hover:bg-red-50 rounded-lg"><Trash2 className="w-4 h-4" /></button>
+                               </div>
+                            </div>
+                          ))}
+                        </div>
+                       )
                     )}
 
                     {/* Modules Table */}
@@ -388,6 +468,15 @@ export default function EntityDetails() {
           </div>
         </div>
       </div>
+
+      {/* Modal de Importação em Lote via CSV */}
+      <BatchUnitImportModal
+        isOpen={isImportModalOpen}
+        onClose={() => setIsImportModalOpen(false)}
+        entityId={id!}
+        entityName={entity?.name}
+        onSuccess={() => loadEntityData()}
+      />
     </Layout>
   );
 }

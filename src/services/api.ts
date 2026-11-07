@@ -489,6 +489,17 @@ export const entityUnitsService = {
     if (error) throw error;
     return data;
   },
+  createMany: async (payloads: any[]) => {
+    const chunkSize = 100;
+    const results: any[] = [];
+    for (let i = 0; i < payloads.length; i += chunkSize) {
+      const chunk = payloads.slice(i, i + chunkSize);
+      const { data, error } = await supabase.from('entity_units').insert(chunk).select();
+      if (error) throw error;
+      if (data) results.push(...data);
+    }
+    return results;
+  },
   update: async (id: string, payload: any) => {
     const { data, error } = await supabase.from('entity_units').update(payload).eq('id', id).select().single();
     if (error) throw error;
