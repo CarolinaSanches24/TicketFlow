@@ -31,6 +31,9 @@ export default function Login() {
 
   // UI State
   const [showPassword, setShowPassword] = useState(false);
+  const [unconfirmedEmail, setUnconfirmedEmail] = useState<string | null>(null);
+  const [isResendingConfirm, setIsResendingConfirm] = useState(false);
+  const [resendSuccess, setResendSuccess] = useState<string | null>(null);
   
   const { register, handleSubmit, formState: { errors, isSubmitting } } = useForm<LoginForm>({
     resolver: zodResolver(loginSchema),
@@ -46,13 +49,48 @@ export default function Login() {
     }
   }, [isAuthenticated, navigate]);
 
+  useEffect(() => {
+    // Detectar erros vindos de redirecionamento do Supabase (ex: link expirado / otp_expired)
+    const hash = window.location.hash;
+    if (hash && hash.includes('error=')) {
+      const hashParams = new URLSearchParams(hash.replace(/^#/, ''));
+      const errorCode = hashParams.get('error_code');
+      const errorDesc = hashParams.get('error_description');
+
+      if (errorCode === 'otp_expired' || errorDesc?.toLowerCase().includes('expired')) {
+        setError('O link de acesso ou confirmação expirou ou é inválido. Se necessário, redefina sua senha ou solicite um novo e-mail de confirmação.');
+      } else if (errorDesc) {
+        setError(decodeURIComponent(errorDesc.replace(/\+/g, ' ')));
+      }
+    }
+  }, []);
+
   const onSubmit = async (data: LoginForm) => {
     try {
       setError(null);
+      setUnconfirmedEmail(null);
+      setResendSuccess(null);
       await authService.login(data);
       // O redirecionamento será tratado pelo useEffect acima
     } catch (err: any) {
-      setError(translateAuthError(err.message || 'Erro ao entrar no sistema'));
+      const msg = err.message || '';
+      if (msg.includes('Email not confirmed')) {
+        setUnconfirmedEmail(data.email);
+      }
+      setError(translateAuthError(msg || 'Erro ao entrar no sistema'));
+    }
+  };
+
+  const handleResendConfirmation = async () => {
+    if (!unconfirmedEmail) return;
+    try {
+      setIsResendingConfirm(true);
+      await authService.resendConfirmationEmail(unconfirmedEmail);
+      setResendSuccess(`E-mail de confirmação reenviado para ${unconfirmedEmail}. Por favor, verifique sua caixa de entrada e spam.`);
+    } catch (err: any) {
+      setError(translateAuthError(err.message || 'Erro ao reenviar confirmação'));
+    } finally {
+      setIsResendingConfirm(false);
     }
   };
 
@@ -88,9 +126,28 @@ export default function Login() {
         </div>
 
         {error && (
-          <div className="mb-6 p-4 bg-red-50 border border-red-100 text-red-600 rounded-lg flex items-center gap-3 animate-in fade-in slide-in-from-top-2">
-            <AlertCircle className="w-5 h-5 flex-shrink-0" />
-            <p className="text-sm font-medium">{error}</p>
+          <div className="mb-6 p-4 bg-red-50 border border-red-100 text-red-600 rounded-lg flex flex-col gap-2 animate-in fade-in slide-in-from-top-2">
+            <div className="flex items-center gap-3">
+              <AlertCircle className="w-5 h-5 flex-shrink-0" />
+              <p className="text-sm font-medium">{error}</p>
+            </div>
+            {unconfirmedEmail && (
+              <button
+                type="button"
+                onClick={handleResendConfirmation}
+                disabled={isResendingConfirm}
+                className="mt-1 text-xs font-bold text-primary-700 bg-primary-100/70 hover:bg-primary-100 py-1.5 px-3 rounded-md w-fit transition-colors disabled:opacity-50 cursor-pointer"
+              >
+                {isResendingConfirm ? 'Reenviando...' : `Reenviar confirmação para ${unconfirmedEmail}`}
+              </button>
+            )}
+          </div>
+        )}
+
+        {resendSuccess && (
+          <div className="mb-6 p-4 bg-emerald-50 border border-emerald-100 text-emerald-700 rounded-lg flex items-center gap-3 animate-in fade-in slide-in-from-top-2">
+            <CheckCircle2 className="w-5 h-5 flex-shrink-0" />
+            <p className="text-sm font-medium">{resendSuccess}</p>
           </div>
         )}
 

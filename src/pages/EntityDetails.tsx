@@ -11,7 +11,7 @@ import {
 import { 
   ArrowLeft, FileText, ClipboardList, Building2, PackagePlus, 
   Plus, Trash2, Pencil, CheckCircle2, ChevronRight, Save, X,
-  Download, Upload, FileSpreadsheet
+  Download, Upload, FileSpreadsheet, Search, XCircle
 } from 'lucide-react';
 import { downloadUnitsCsvTemplate } from '../utils/csvUnitsParser';
 import BatchUnitImportModal from '../components/entities/BatchUnitImportModal';
@@ -35,6 +35,10 @@ export default function EntityDetails() {
   const [loading, setLoading] = useState(true);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [isImportModalOpen, setIsImportModalOpen] = useState(false);
+  
+  // Units List Filters
+  const [unitSearch, setUnitSearch] = useState('');
+  const [unitStatusFilter, setUnitStatusFilter] = useState<'ALL' | 'ACTIVE' | 'INACTIVE'>('ALL');
 
   // Forms
   const [formVisible, setFormVisible] = useState(false);
@@ -74,9 +78,15 @@ export default function EntityDetails() {
   const openForm = (item?: any) => {
     setEditId(item ? item.id : null);
     if (item) {
-      setFormData(item);
+      setFormData({
+        ...item,
+        status: item.status || 'ACTIVE'
+      });
     } else {
-      setFormData({ entity_id: id }); // reset with binding link
+      setFormData({ 
+        entity_id: id,
+        status: 'ACTIVE'
+      }); // reset with binding link
     }
     setFormVisible(true);
   };
@@ -219,20 +229,31 @@ export default function EntityDetails() {
                   {activeTab === 'units' && (
                     <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                       <div className="sm:col-span-2">
-                        <label className="block text-sm font-semibold text-slate-700 mb-1">Nome da Unidade / Polo</label>
-                        <input required value={formData.unit_name || ''} onChange={e => setFormData({...formData, unit_name: e.target.value})} className="w-full px-4 py-2 rounded-xl border border-slate-200 focus:ring-2 focus:ring-primary-500" placeholder="Ex: Escola Estadual ABC" />
+                        <label className="block text-sm font-semibold text-slate-700 mb-1">Nome da Unidade / Polo *</label>
+                        <input required value={formData.unit_name || ''} onChange={e => setFormData({...formData, unit_name: e.target.value})} className="w-full px-4 py-2 rounded-xl border border-slate-200 focus:ring-2 focus:ring-primary-500 outline-none" placeholder="Ex: Escola Estadual ABC" />
                       </div>
                       <div>
                         <label className="block text-sm font-semibold text-slate-700 mb-1">Diretor(a)</label>
-                        <input value={formData.director_name || ''} onChange={e => setFormData({...formData, director_name: e.target.value})} className="w-full px-4 py-2 rounded-xl border border-slate-200 focus:ring-2 focus:ring-primary-500" />
+                        <input value={formData.director_name || ''} onChange={e => setFormData({...formData, director_name: e.target.value})} className="w-full px-4 py-2 rounded-xl border border-slate-200 focus:ring-2 focus:ring-primary-500 outline-none" placeholder="Nome do diretor(a)" />
                       </div>
                       <div>
                         <label className="block text-sm font-semibold text-slate-700 mb-1">Secretário(a)</label>
-                        <input value={formData.secretary_name || ''} onChange={e => setFormData({...formData, secretary_name: e.target.value})} className="w-full px-4 py-2 rounded-xl border border-slate-200 focus:ring-2 focus:ring-primary-500" />
+                        <input value={formData.secretary_name || ''} onChange={e => setFormData({...formData, secretary_name: e.target.value})} className="w-full px-4 py-2 rounded-xl border border-slate-200 focus:ring-2 focus:ring-primary-500 outline-none" placeholder="Nome do secretário(a)" />
+                      </div>
+                      <div>
+                        <label className="block text-sm font-semibold text-slate-700 mb-1">Situação / Status da Unidade</label>
+                        <select 
+                          value={formData.status || 'ACTIVE'} 
+                          onChange={e => setFormData({...formData, status: e.target.value})} 
+                          className="w-full px-4 py-2 rounded-xl border border-slate-200 focus:ring-2 focus:ring-primary-500 bg-white outline-none text-sm font-medium"
+                        >
+                          <option value="ACTIVE">Ativa (Em funcionamento)</option>
+                          <option value="INACTIVE">Inativa (Desativada)</option>
+                        </select>
                       </div>
                       <div className="sm:col-span-2">
                         <label className="block text-sm font-semibold text-slate-700 mb-1">Cursos Oferecidos (Resumo)</label>
-                        <textarea rows={2} value={formData.course_offers || ''} onChange={e => setFormData({...formData, course_offers: e.target.value})} className="w-full px-4 py-2 rounded-xl border border-slate-200 focus:ring-2 focus:ring-primary-500 resize-none" placeholder="Ensino Médio, Técnico..." />
+                        <textarea rows={2} value={formData.course_offers || ''} onChange={e => setFormData({...formData, course_offers: e.target.value})} className="w-full px-4 py-2 rounded-xl border border-slate-200 focus:ring-2 focus:ring-primary-500 resize-none outline-none text-sm" placeholder="Ex: Ensino Fundamental, Ensino Médio, Técnico..." />
                       </div>
                     </div>
                   )}
@@ -346,39 +367,115 @@ export default function EntityDetails() {
                            </div>
                          </div>
                        ) : (
-                        <div className="space-y-3">
-                          {units.map(item => (
-                            <div key={item.id} className="bg-white border border-slate-200 p-4 rounded-xl flex items-center justify-between hover:border-primary-300 transition-colors">
-                               <div className="space-y-1">
-                                 <div className="flex items-center gap-2.5">
-                                   <h4 className="font-bold text-slate-900 text-base flex items-center gap-2">
-                                     <Building2 className="w-4 h-4 text-primary-500"/> {item.unit_name}
-                                   </h4>
-                                   {item.status && (
-                                     <span className={`text-[10px] font-bold px-2 py-0.5 rounded-full ${
-                                       item.status === 'ACTIVE' 
-                                         ? 'bg-emerald-100 text-emerald-700' 
-                                         : 'bg-slate-100 text-slate-600'
-                                     }`}>
-                                       {item.status === 'ACTIVE' ? 'Ativa' : item.status}
-                                     </span>
-                                   )}
-                                 </div>
-                                 <p className="text-sm text-slate-600">
-                                   Diretor(a): <b>{item.director_name || 'N/A'}</b> • Seç.: <b>{item.secretary_name || 'N/A'}</b>
-                                 </p>
-                                 {item.course_offers && (
-                                   <p className="text-xs text-slate-500">
-                                     Cursos: <span className="text-slate-700 font-medium">{item.course_offers}</span>
-                                   </p>
-                                 )}
-                               </div>
-                               <div className="flex gap-2">
-                                 <button onClick={() => openForm(item)} className="p-2 text-slate-400 hover:text-primary-600 bg-slate-50 hover:bg-primary-50 rounded-lg"><Pencil className="w-4 h-4" /></button>
-                                 <button onClick={() => handleDelete(item.id)} className="p-2 text-slate-400 hover:text-red-600 bg-slate-50 hover:bg-red-50 rounded-lg"><Trash2 className="w-4 h-4" /></button>
-                               </div>
+                        <div className="space-y-4">
+                          {/* Units Filter Bar */}
+                          <div className="flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-3 bg-white p-3 rounded-xl border border-slate-200/80 shadow-xs">
+                            <div className="relative flex-1">
+                              <Search className="w-4 h-4 text-slate-400 absolute left-3 top-1/2 -translate-y-1/2" />
+                              <input
+                                type="text"
+                                value={unitSearch}
+                                onChange={e => setUnitSearch(e.target.value)}
+                                placeholder="Buscar por unidade, diretor ou secretário..."
+                                className="w-full pl-9 pr-8 py-1.5 text-xs rounded-lg border border-slate-200 focus:ring-2 focus:ring-primary-500 outline-none"
+                              />
+                              {unitSearch && (
+                                <button
+                                  type="button"
+                                  onClick={() => setUnitSearch('')}
+                                  className="absolute right-2.5 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600"
+                                >
+                                  <X className="w-3.5 h-3.5" />
+                                </button>
+                              )}
                             </div>
-                          ))}
+                            <div className="flex items-center gap-1.5 shrink-0 self-end sm:self-center">
+                              <button
+                                type="button"
+                                onClick={() => setUnitStatusFilter('ALL')}
+                                className={`px-3 py-1.5 rounded-lg text-xs font-bold transition-all ${
+                                  unitStatusFilter === 'ALL'
+                                    ? 'bg-slate-900 text-white shadow-xs'
+                                    : 'bg-slate-100 text-slate-600 hover:bg-slate-200'
+                                }`}
+                              >
+                                Todas ({units.length})
+                              </button>
+                              <button
+                                type="button"
+                                onClick={() => setUnitStatusFilter('ACTIVE')}
+                                className={`px-3 py-1.5 rounded-lg text-xs font-bold transition-all ${
+                                  unitStatusFilter === 'ACTIVE'
+                                    ? 'bg-emerald-600 text-white shadow-xs'
+                                    : 'bg-emerald-50 text-emerald-700 hover:bg-emerald-100'
+                                }`}
+                              >
+                                Ativas ({units.filter(u => u.status === 'ACTIVE' || !u.status).length})
+                              </button>
+                              <button
+                                type="button"
+                                onClick={() => setUnitStatusFilter('INACTIVE')}
+                                className={`px-3 py-1.5 rounded-lg text-xs font-bold transition-all ${
+                                  unitStatusFilter === 'INACTIVE'
+                                    ? 'bg-slate-700 text-white shadow-xs'
+                                    : 'bg-slate-100 text-slate-500 hover:bg-slate-200'
+                                }`}
+                              >
+                                Inativas ({units.filter(u => u.status === 'INACTIVE').length})
+                              </button>
+                            </div>
+                          </div>
+
+                          {/* Filtered Units List */}
+                          {units
+                            .filter(item => {
+                              const matchesSearch = !unitSearch || 
+                                item.unit_name?.toLowerCase().includes(unitSearch.toLowerCase()) ||
+                                item.director_name?.toLowerCase().includes(unitSearch.toLowerCase()) ||
+                                item.secretary_name?.toLowerCase().includes(unitSearch.toLowerCase());
+                              const isItemActive = item.status === 'ACTIVE' || !item.status;
+                              const matchesStatus = unitStatusFilter === 'ALL' || 
+                                (unitStatusFilter === 'ACTIVE' && isItemActive) || 
+                                (unitStatusFilter === 'INACTIVE' && !isItemActive);
+                              return matchesSearch && matchesStatus;
+                            })
+                            .map(item => {
+                              const isItemActive = item.status === 'ACTIVE' || !item.status;
+                              return (
+                                <div key={item.id} className="bg-white border border-slate-200 p-4 rounded-xl flex items-center justify-between hover:border-primary-300 transition-colors shadow-xs">
+                                   <div className="space-y-1">
+                                     <div className="flex items-center gap-2.5">
+                                       <h4 className="font-bold text-slate-900 text-base flex items-center gap-2">
+                                         <Building2 className="w-4 h-4 text-primary-500"/> {item.unit_name}
+                                       </h4>
+                                       <span className={`text-[11px] font-bold px-2.5 py-0.5 rounded-full flex items-center gap-1 ${
+                                         isItemActive 
+                                           ? 'bg-emerald-100 text-emerald-700' 
+                                           : 'bg-slate-100 text-slate-600'
+                                       }`}>
+                                         {isItemActive ? (
+                                           <><CheckCircle2 className="w-3 h-3 text-emerald-600" /> Ativa</>
+                                         ) : (
+                                           <><XCircle className="w-3 h-3 text-slate-500" /> Inativa</>
+                                         )}
+                                       </span>
+                                     </div>
+                                     <p className="text-sm text-slate-600">
+                                       Diretor(a): <b>{item.director_name || 'Não informado'}</b> • Secretário(a): <b>{item.secretary_name || 'Não informado'}</b>
+                                     </p>
+                                     {item.course_offers && (
+                                       <p className="text-xs text-slate-500">
+                                         Cursos: <span className="text-slate-700 font-medium">{item.course_offers}</span>
+                                       </p>
+                                     )}
+                                   </div>
+                                   <div className="flex gap-2">
+                                     <button onClick={() => openForm(item)} className="p-2 text-slate-400 hover:text-primary-600 bg-slate-50 hover:bg-primary-50 rounded-lg transition-colors" title="Editar Unidade"><Pencil className="w-4 h-4" /></button>
+                                     <button onClick={() => handleDelete(item.id)} className="p-2 text-slate-400 hover:text-red-600 bg-slate-50 hover:bg-red-50 rounded-lg transition-colors" title="Excluir Unidade"><Trash2 className="w-4 h-4" /></button>
+                                   </div>
+                                </div>
+                              );
+                            })}
                         </div>
                        )
                     )}

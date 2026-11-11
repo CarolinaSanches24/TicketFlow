@@ -34,6 +34,10 @@ export default function UpdatePassword() {
 
   useEffect(() => {
     const checkSession = async () => {
+      if (window.location.hash && window.location.hash.includes('error=')) {
+        navigate('/login' + window.location.hash, { replace: true });
+        return;
+      }
       const { data: { session } } = await supabase.auth.getSession();
       if (!session) {
         navigate('/login', { replace: true });

@@ -32,6 +32,17 @@ export const authService = {
     if (error) throw error;
   },
 
+  resendConfirmationEmail: async (email: string) => {
+    const { error } = await supabase.auth.resend({
+      type: 'signup',
+      email: email,
+      options: {
+        emailRedirectTo: `${window.location.origin}`,
+      }
+    });
+    if (error) throw error;
+  },
+
   updatePassword: async (password: string) => {
     const { error } = await supabase.auth.updateUser({
       password: password

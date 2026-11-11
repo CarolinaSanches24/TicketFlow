@@ -7,13 +7,15 @@ interface EntityAutocompleteSearchProps {
   onChange: (value: string) => void;
   placeholder?: string;
   className?: string;
+  allowCreate?: boolean;
 }
 
 export default function EntityAutocompleteSearch({ 
   value, 
   onChange, 
   placeholder = "Buscar organização...", 
-  className 
+  className,
+  allowCreate = true
 }: EntityAutocompleteSearchProps) {
   
   const [query, setQuery] = useState(value || '');
@@ -111,8 +113,24 @@ export default function EntityAutocompleteSearch({
           placeholder={placeholder}
           className={className || "w-full pl-4 pr-10 py-2 rounded-xl border border-slate-200 focus:ring-2 focus:ring-primary-500 outline-none transition-all text-sm"}
         />
-        <div className="absolute right-3 text-slate-400 pointer-events-none">
-          <Search className="w-4 h-4" />
+        <div className="absolute right-2.5 flex items-center gap-1 text-slate-400">
+          {query ? (
+            <button
+              type="button"
+              onClick={(e) => {
+                e.stopPropagation();
+                setQuery('');
+                onChange('');
+                setIsOpen(false);
+              }}
+              className="p-1 hover:text-slate-600 rounded-full hover:bg-slate-100 transition-colors cursor-pointer"
+              title="Limpar seleção"
+            >
+              <X className="w-3.5 h-3.5" />
+            </button>
+          ) : (
+            <Search className="w-4 h-4 pointer-events-none" />
+          )}
         </div>
       </div>
 
@@ -136,13 +154,15 @@ export default function EntityAutocompleteSearch({
           ) : (
             <div className="p-3 text-xs text-slate-500 text-center flex flex-col items-center gap-2">
               <p>Nenhuma organização encontrada.</p>
-              <button 
-                type="button"
-                onClick={openCreateModal}
-                className="bg-primary-50 text-primary-600 hover:bg-primary-100 font-semibold px-3 py-1.5 rounded-lg transition-colors"
-              >
-                Criar "{query}"
-              </button>
+              {allowCreate && (
+                <button 
+                  type="button"
+                  onClick={openCreateModal}
+                  className="bg-primary-50 text-primary-600 hover:bg-primary-100 font-semibold px-3 py-1.5 rounded-lg transition-colors"
+                >
+                  Criar "{query}"
+                </button>
+              )}
             </div>
           )}
         </div>

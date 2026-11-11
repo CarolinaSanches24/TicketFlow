@@ -360,7 +360,7 @@ export default function Debts() {
           </div>
 
           {/* Advanced Filters Row */}
-          <div className="grid grid-cols-1 md:grid-cols-5 gap-3 pt-3 border-t border-slate-100">
+          <div className="grid grid-cols-1 md:grid-cols-5 gap-3 pt-3 border-t border-slate-100 relative z-20">
             <div>
               <input 
                 type="text" 
@@ -380,13 +380,13 @@ export default function Debts() {
                 {analysts.map(a => <option key={a.id} value={a.id}>{a.name}</option>)}
               </select>
             </div>
-            <div>
-              <input 
-                type="text" 
-                placeholder="Organização"
+            <div className="relative">
+              <EntityAutocompleteSearch 
                 value={filterOrg}
-                onChange={(e) => setFilterOrg(e.target.value)}
-                className="w-full px-3 py-1.5 rounded-lg border border-slate-200 focus:ring-2 focus:ring-primary-500 outline-none text-sm"
+                onChange={setFilterOrg}
+                placeholder="Buscar organização..."
+                allowCreate={false}
+                className="w-full pl-3 pr-8 py-1.5 rounded-lg border border-slate-200 focus:ring-2 focus:ring-primary-500 outline-none text-sm bg-white"
               />
             </div>
             <div className="flex items-center gap-2 col-span-2">
