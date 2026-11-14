@@ -10,6 +10,8 @@ import EntityDetails from './pages/EntityDetails';
 import Users from './pages/Users';
 import Report from './pages/Report';
 import EvaluationCriteria from './pages/EvaluationCriteria';
+import Sectors from './pages/Sectors';
+import Employees from './pages/Employees';
 import { UserProvider, useUser } from './contexts/UserContext';
 
 const ProtectedRoute = ({ children }: { children: React.ReactNode }) => {
@@ -37,6 +39,8 @@ function AppRoutes() {
       <Route path="/evaluation-criteria" element={<ProtectedRoute><EvaluationCriteria /></ProtectedRoute>} />
       <Route path="/report" element={<ProtectedRoute><Report /></ProtectedRoute>} />
       <Route path="/users" element={<ProtectedRoute><Users /></ProtectedRoute>} />
+      <Route path="/settings/sectors" element={<ProtectedRoute><Sectors /></ProtectedRoute>} />
+      <Route path="/settings/employees" element={<ProtectedRoute><Employees /></ProtectedRoute>} />
     </Routes>
   );
 }

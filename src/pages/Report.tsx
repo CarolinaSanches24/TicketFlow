@@ -1,7 +1,7 @@
 import { useState, useEffect, useRef } from 'react';
 import Layout from '../components/layouts/Layout';
 import { dashboardService, authService } from '../services/api';
-import { Printer, Filter, TrendingUp, Wrench, Database, AlertCircle, Ticket } from 'lucide-react';
+import { Printer, Filter, TrendingUp, Wrench, Database, AlertCircle, Ticket, ExternalLink } from 'lucide-react';
 import EntityAutocompleteSearch from '../components/EntityAutocompleteSearch';
 
 const TRANSLATIONS: Record<string, string> = {
@@ -15,6 +15,7 @@ const TRANSLATIONS: Record<string, string> = {
   'IN_TEST': 'Em Teste',
   'IN_CORRECTION': 'Em Correção',
   'RESOLVED': 'Resolvido',
+  'CANCELED': 'Cancelada',
 };
 
 const translateStatus = (s: string) => TRANSLATIONS[s] || s;
@@ -23,6 +24,13 @@ const formatDate = (dateStr: string) => {
   if (!dateStr) return '—';
   const d = dateStr.length === 10 ? new Date(dateStr + 'T12:00:00') : new Date(dateStr);
   return d.toLocaleDateString('pt-BR');
+};
+
+const formatUrl = (url: string | null | undefined): string => {
+  if (!url) return '';
+  const trimmed = url.trim();
+  if (!trimmed) return '';
+  return /^https?:\/\//i.test(trimmed) ? trimmed : `https://${trimmed}`;
 };
 
 const OPEN_STATUSES = new Set([
@@ -65,49 +73,75 @@ function SectionTable({ title, icon, color, items }: SectionTableProps) {
             <tr className="border-b border-slate-100 bg-white">
               <th className="px-4 py-2 text-xs font-bold text-slate-400 uppercase tracking-wider">Nº</th>
               <th className="px-4 py-2 text-xs font-bold text-slate-400 uppercase tracking-wider">Título / Descrição</th>
+              <th className="px-4 py-2 text-xs font-bold text-slate-400 uppercase tracking-wider">Responsáveis</th>
               <th className="px-4 py-2 text-xs font-bold text-slate-400 uppercase tracking-wider">Analista</th>
               <th className="px-4 py-2 text-xs font-bold text-slate-400 uppercase tracking-wider">Status</th>
               <th className="px-4 py-2 text-xs font-bold text-slate-400 uppercase tracking-wider">Abertura</th>
             </tr>
           </thead>
           <tbody>
-            {items.map((item: any) => (
-              <tr key={item.id} className="border-b border-slate-50 last:border-0 hover:bg-slate-50/50">
-                <td className="px-4 py-2.5">
-                  {item.external_url ? (
-                    <a
-                      href={item.external_url}
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      className="font-mono text-xs font-bold text-primary-600 hover:underline print:text-slate-800 print:no-underline"
-                    >
-                      #{item.external_id || 'LINK'}
-                    </a>
-                  ) : (
-                    <span className="font-mono text-xs text-slate-500">#{item.external_id || '—'}</span>
-                  )}
-                </td>
-                <td className="px-4 py-2.5 max-w-xs">
-                  <span className="font-semibold text-slate-900 block truncate">
-                    {item.title || item.description?.substring(0, 60) + '...' || '—'}
-                  </span>
-                  {item.title && item.description && (
-                    <span className="text-xs text-slate-400 block truncate">{item.description}</span>
-                  )}
-                </td>
-                <td className="px-4 py-2.5 text-slate-600 whitespace-nowrap">
-                  {item.analyst?.name || '—'}
-                </td>
-                <td className="px-4 py-2.5">
-                  <span className="text-xs font-bold px-2 py-0.5 rounded-full bg-slate-100 text-slate-600 whitespace-nowrap">
-                    {translateStatus(item.status)}
-                  </span>
-                </td>
-                <td className="px-4 py-2.5 text-slate-500 whitespace-nowrap text-xs">
-                  {formatDate(item.opened_at || item.created_at)}
-                </td>
-              </tr>
-            ))}
+            {items.map((item: any) => {
+              const formattedLink = formatUrl(item.external_url);
+              return (
+                <tr key={item.id} className="border-b border-slate-50 last:border-0 hover:bg-slate-50/50">
+                  <td className="px-4 py-2.5">
+                    {formattedLink ? (
+                      <a
+                        href={formattedLink}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="font-mono text-xs font-bold text-blue-600 hover:text-blue-800 underline print:text-blue-600 print:underline inline-flex items-center gap-1 cursor-pointer"
+                        title={formattedLink}
+                      >
+                        #{item.external_id || 'LINK'}
+                        <ExternalLink className="w-2.5 h-2.5 opacity-60 no-print" />
+                      </a>
+                    ) : (
+                      <span className="font-mono text-xs text-slate-500">#{item.external_id || '—'}</span>
+                    )}
+                  </td>
+                  <td className="px-4 py-2.5 max-w-xs">
+                    <span className="font-semibold text-slate-900 block truncate">
+                      {item.title || item.description?.substring(0, 60) + '...' || '—'}
+                    </span>
+                    {item.title && item.description && (
+                      <span className="text-xs text-slate-400 block truncate">{item.description}</span>
+                    )}
+                  </td>
+                  <td className="px-4 py-2.5 text-xs text-slate-600 whitespace-nowrap">
+                    {item.responsible && (
+                      <div className="truncate max-w-[140px]" title={`Responsável: ${item.responsible}`}>
+                        <span className="font-semibold text-slate-400">Dev:</span> {item.responsible}
+                      </div>
+                    )}
+                    {item.pm_responsible && (
+                      <div className="truncate max-w-[140px]" title={`PM: ${item.pm_responsible}`}>
+                        <span className="font-semibold text-primary-500">PM:</span> {item.pm_responsible}
+                      </div>
+                    )}
+                    {item.requester && (
+                      <div className="truncate max-w-[140px]" title={`Solicitante: ${item.requester}`}>
+                        <span className="font-semibold text-slate-400">Sol:</span> {item.requester}
+                      </div>
+                    )}
+                    {!item.responsible && !item.pm_responsible && !item.requester && (
+                      <span className="text-slate-400">—</span>
+                    )}
+                  </td>
+                  <td className="px-4 py-2.5 text-slate-600 whitespace-nowrap">
+                    {item.analyst?.name || '—'}
+                  </td>
+                  <td className="px-4 py-2.5">
+                    <span className="text-xs font-bold px-2 py-0.5 rounded-full bg-slate-100 text-slate-600 whitespace-nowrap">
+                      {translateStatus(item.status)}
+                    </span>
+                  </td>
+                  <td className="px-4 py-2.5 text-slate-500 whitespace-nowrap text-xs">
+                    {formatDate(item.opened_at || item.created_at)}
+                  </td>
+                </tr>
+              );
+            })}
           </tbody>
         </table>
       </div>
@@ -184,13 +218,27 @@ export default function Report() {
 
   return (
     <Layout>
-      {/* Print styles — hidden in screen, visible in print */}
+      {/* Print styles */}
       <style>{`
         @media print {
-          body * { visibility: hidden; }
-          #report-print-area, #report-print-area * { visibility: visible; }
-          #report-print-area { position: absolute; left: 0; top: 0; width: 100%; padding: 24px; }
-          .no-print { display: none !important; }
+          @page {
+            margin: 10mm;
+            size: auto;
+          }
+          .no-print {
+            display: none !important;
+          }
+          a[href] {
+            color: #2563eb !important;
+            text-decoration: underline !important;
+            -webkit-print-color-adjust: exact !important;
+            print-color-adjust: exact !important;
+          }
+          #report-print-area {
+            width: 100% !important;
+            padding: 0 !important;
+            margin: 0 !important;
+          }
         }
       `}</style>
 

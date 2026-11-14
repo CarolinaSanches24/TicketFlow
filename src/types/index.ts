@@ -47,6 +47,25 @@ export interface TechnicalDebt {
   createdAt: string
 }
 
+export interface Sector {
+  id: string;
+  name: string;
+  description?: string | null;
+  created_at?: string;
+  updated_at?: string;
+}
+
+export interface Employee {
+  id: string;
+  name: string;
+  sector_id?: string | null;
+  sector?: Sector | null;
+  role: string; // cargo
+  status: string;
+  created_at?: string;
+  updated_at?: string;
+}
+
 export type ApprovalType = 'MATRICULA' | 'DISCIPLINA'
 export type FrequencyType = 'HORA_AULA' | 'DIA_LETIVO'
 export type EvaluationPeriod = 'BIMESTRE' | 'TRIMESTRE' | 'SEMESTRE' | 'MODULO_UNICO' | 'UNIDADE'

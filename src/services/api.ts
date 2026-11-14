@@ -554,6 +554,7 @@ export const dashboardService = {
       const start = `${startDate}T00:00:00.000Z`;
       improvementQuery = improvementQuery.gte('created_at', start);
       debtQuery = debtQuery.gte('created_at', start);
+      dataRequestQuery = dataRequestQuery.gte('created_at', start);
     }
     if (endDate) {
       const end = `${endDate}T23:59:59.999Z`;
@@ -632,6 +633,92 @@ export const evaluationCriteriaConfigService = {
   },
   delete: async (id: string) => {
     const { error } = await supabase.from('evaluation_criteria_config').delete().eq('id', id);
+    if (error) throw error;
+  }
+};
+
+export const sectorService = {
+  getAll: async () => {
+    const { data, error } = await supabase
+      .from('sectors')
+      .select('*')
+      .order('name', { ascending: true });
+    if (error) throw error;
+    return data || [];
+  },
+  create: async (payload: { name: string; description?: string }) => {
+    const { data, error } = await supabase
+      .from('sectors')
+      .insert([payload])
+      .select()
+      .single();
+    if (error) throw error;
+    return data;
+  },
+  update: async (id: string, payload: { name: string; description?: string }) => {
+    const { data, error } = await supabase
+      .from('sectors')
+      .update(payload)
+      .eq('id', id)
+      .select()
+      .single();
+    if (error) throw error;
+    return data;
+  },
+  delete: async (id: string) => {
+    const { error } = await supabase
+      .from('sectors')
+      .delete()
+      .eq('id', id);
+    if (error) throw error;
+  }
+};
+
+export const employeeService = {
+  getAll: async () => {
+    const { data, error } = await supabase
+      .from('employees')
+      .select('*, sector:sectors(*)')
+      .order('name', { ascending: true });
+    if (error) throw error;
+    return data || [];
+  },
+  getBySector: async (sectorNameOrId: string) => {
+    const { data, error } = await supabase
+      .from('employees')
+      .select('*, sector:sectors(*)')
+      .order('name', { ascending: true });
+    if (error) throw error;
+    if (!data) return [];
+    return data.filter((emp: any) => 
+      emp.sector_id === sectorNameOrId || 
+      emp.sector?.name?.toLowerCase() === sectorNameOrId.toLowerCase()
+    );
+  },
+  create: async (payload: { name: string; sector_id?: string | null; role: string; status?: string }) => {
+    const { data, error } = await supabase
+      .from('employees')
+      .insert([payload])
+      .select('*, sector:sectors(*)')
+      .single();
+    if (error) throw error;
+    return data;
+  },
+  update: async (id: string, payload: { name?: string; sector_id?: string | null; role?: string; status?: string }) => {
+    const { data, error } = await supabase
+      .from('employees')
+      .update(payload)
+      .eq('id', id)
+      .select('*, sector:sectors(*)')
+      .single();
+    if (error) throw error;
+    return data;
+  },
+  delete: async (id: string) => {
+    const { error } = await supabase
+      .from('employees')
+      .delete()
+      .eq('id', id);
     if (error) throw error;
   }
 };

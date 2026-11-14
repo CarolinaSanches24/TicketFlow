@@ -9,18 +9,22 @@ import {
 import { useUser } from '../contexts/UserContext';
 import { debtService, authService } from '../services/api';
 import EntityAutocompleteSearch from '../components/EntityAutocompleteSearch';
-import { Plus, Search, User as UserIcon, Calendar, CheckCircle2, Clock, PlayCircle, Wrench, Info, Edit2, Trash2 } from 'lucide-react';
+import EmployeeAutocompleteSearch from '../components/EmployeeAutocompleteSearch';
+import { Plus, Search, User as UserIcon, Calendar, CheckCircle2, Clock, PlayCircle, Wrench, Info, Edit2, Trash2, Ban } from 'lucide-react';
 
 interface Debt {
   id: string;
   external_id: string | null;
   external_url: string | null;
   description: string;
-  status: 'OPEN' | 'IN_CORRECTION' | 'RESOLVED';
+  status: 'OPEN' | 'IN_CORRECTION' | 'RESOLVED' | 'CANCELED';
   origin_type: string;
   analyst_id: string | null;
   analyst?: { name: string };
   organization?: string | null;
+  responsible?: string | null;
+  pm_responsible?: string | null;
+  requester?: string | null;
   opened_at: string | null;
   created_at: string;
 }
@@ -31,6 +35,7 @@ const statusConfig: Record<string, { label: string; color: string; icon: any }> 
   'OPEN': { label: 'Aberto', color: 'bg-red-100 text-red-700', icon: Clock },
   'IN_CORRECTION': { label: 'Em Correção', color: 'bg-amber-100 text-amber-700', icon: PlayCircle },
   'RESOLVED': { label: 'Resolvido', color: 'bg-emerald-100 text-emerald-700', icon: CheckCircle2 },
+  'CANCELED': { label: 'Cancelada', color: 'bg-slate-100 text-slate-700', icon: Ban },
 };
 
 export default function Debts() {
@@ -54,9 +59,13 @@ export default function Debts() {
     external_id: '',
     external_url: '',
     description: '',
+    status: 'OPEN' as 'OPEN' | 'IN_CORRECTION' | 'RESOLVED' | 'CANCELED',
     analystId: '',
     organization: '',
-    opened_at: ''
+    opened_at: '',
+    responsible: '',
+    pm_responsible: '',
+    requester: ''
   });
 
   // Edit/Delete States
@@ -95,18 +104,24 @@ export default function Debts() {
     try {
       setIsSubmitting(true);
       await debtService.create({
-    external_id: newItem.external_id || null,
-    external_url: newItem.external_url || null,
-    description: newItem.description,
-    analyst_id: newItem.analystId || null,
-    organization: newItem.organization || null,
-    opened_at: newItem.opened_at || null,
-    origin_type: 'MANUAL',
-    status: 'OPEN'
-  });
-  
-  setIsModalOpen(false);
-  setNewItem({ external_id: '', external_url: '', description: '', analystId: '', organization: '', opened_at: '' });
+        external_id: newItem.external_id || null,
+        external_url: newItem.external_url || null,
+        description: newItem.description,
+        analyst_id: newItem.analystId || null,
+        organization: newItem.organization || null,
+        opened_at: newItem.opened_at || null,
+        origin_type: 'MANUAL',
+        status: newItem.status || 'OPEN',
+        responsible: newItem.responsible || null,
+        pm_responsible: newItem.pm_responsible || null,
+        requester: newItem.requester || null
+      });
+      
+      setIsModalOpen(false);
+      setNewItem({ 
+        external_id: '', external_url: '', description: '', status: 'OPEN',
+        analystId: '', organization: '', opened_at: '', responsible: '', pm_responsible: '', requester: '' 
+      });
       fetchItems();
     } catch (error) {
       alert('Erro ao criar débito');
@@ -131,15 +146,18 @@ export default function Debts() {
     try {
       setIsSubmitting(true);
       await debtService.update(editingItem.id, {
-    external_id: editingItem.external_id,
-    external_url: editingItem.external_url,
-    description: editingItem.description,
-    analyst_id: editingItem.analyst_id,
-    organization: editingItem.organization,
-    opened_at: editingItem.opened_at,
-    status: editingItem.status,
-    origin_type: editingItem.origin_type
-  });
+        external_id: editingItem.external_id,
+        external_url: editingItem.external_url,
+        description: editingItem.description,
+        analyst_id: editingItem.analyst_id,
+        organization: editingItem.organization,
+        opened_at: editingItem.opened_at,
+        status: editingItem.status,
+        origin_type: editingItem.origin_type,
+        responsible: editingItem.responsible || null,
+        pm_responsible: editingItem.pm_responsible || null,
+        requester: editingItem.requester || null
+      });
       setEditingItem(null);
       fetchItems();
     } catch (error) {
@@ -213,6 +231,35 @@ export default function Debts() {
       },
     }),
     columnHelper.display({
+      id: 'responsibles',
+      header: 'Responsáveis',
+      cell: info => {
+        const item = info.row.original;
+        if (!item.responsible && !item.pm_responsible && !item.requester) {
+          return <span className="text-xs text-slate-400">---</span>;
+        }
+        return (
+          <div className="text-xs space-y-0.5">
+            {item.responsible && (
+              <div className="text-slate-700 truncate max-w-[160px]" title={`Responsável: ${item.responsible}`}>
+                <span className="font-semibold text-slate-400">Dev:</span> {item.responsible}
+              </div>
+            )}
+            {item.pm_responsible && (
+              <div className="text-slate-700 truncate max-w-[160px]" title={`PM: ${item.pm_responsible}`}>
+                <span className="font-semibold text-primary-500">PM:</span> {item.pm_responsible}
+              </div>
+            )}
+            {item.requester && (
+              <div className="text-slate-500 truncate max-w-[160px]" title={`Solicitante: ${item.requester}`}>
+                <span className="font-semibold text-slate-400">Sol:</span> {item.requester}
+              </div>
+            )}
+          </div>
+        );
+      },
+    }),
+    columnHelper.display({
       id: 'opened_at_col',
       header: 'Data de Abertura',
       cell: (info) => {
@@ -232,7 +279,7 @@ export default function Debts() {
       header: '',
       cell: (info) => {
         const item = info.row.original;
-        const isResolved = item.status === 'RESOLVED';
+        const isResolved = ['RESOLVED', 'CANCELED'].includes(item.status);
         
         return (
           <div className="flex items-center gap-2">
@@ -244,19 +291,18 @@ export default function Debts() {
                  {item.status === 'IN_CORRECTION' && (
                    <button onClick={() => handleStatusUpdate(item.id, 'RESOLVED')} className="text-xs font-medium text-emerald-600 hover:bg-emerald-50 p-1 rounded">Resolver</button>
                  )}
+                 <button onClick={() => handleStatusUpdate(item.id, 'CANCELED')} className="text-xs font-medium text-slate-500 hover:bg-slate-100 p-1 rounded">Cancelar</button>
                  <div className="w-px h-4 bg-slate-100 mx-1" />
                </>
              )}
 
-             {!isResolved && (
-               <button 
-                 onClick={() => setEditingItem(item)}
-                 className="p-1.5 text-slate-400 hover:text-blue-600 hover:bg-blue-50 rounded-lg transition-all"
-                 title="Editar"
-               >
-                 <Edit2 className="w-4 h-4" />
-               </button>
-             )}
+             <button 
+               onClick={() => setEditingItem(item)}
+               className="p-1.5 text-slate-400 hover:text-blue-600 hover:bg-blue-50 rounded-lg transition-all"
+               title="Editar"
+             >
+               <Edit2 className="w-4 h-4" />
+             </button>
 
              <button 
                onClick={() => handleDeleteItem(item.id)}
@@ -444,15 +490,15 @@ export default function Debts() {
       {/* Creation Modal */}
       {isModalOpen && (
         <div className="fixed inset-0 bg-slate-900/50 backdrop-blur-sm z-50 flex items-center justify-center p-4">
-          <div className="bg-white rounded-2xl shadow-xl w-full max-w-md overflow-hidden animate-in fade-in zoom-in duration-200">
-            <div className="px-6 py-4 border-b border-slate-100 flex items-center justify-between bg-slate-50/50">
+          <div className="bg-white rounded-2xl shadow-xl w-full max-w-lg max-h-[90vh] overflow-hidden flex flex-col animate-in fade-in zoom-in duration-200">
+            <div className="px-6 py-4 border-b border-slate-100 flex items-center justify-between bg-slate-50/50 flex-shrink-0">
               <h2 className="text-lg font-bold text-slate-900">Novo Débito</h2>
               <button onClick={() => setIsModalOpen(false)} className="text-slate-400 hover:text-slate-600 transition-colors">
                 <Plus className="w-5 h-5 rotate-45" />
               </button>
             </div>
             
-            <form onSubmit={handleCreateDebt} className="p-6 space-y-4">
+            <form onSubmit={handleCreateDebt} className="p-6 space-y-4 overflow-y-auto flex-1">
               <div className="grid grid-cols-3 gap-4">
                 <div>
                   <label className="block text-sm font-semibold text-slate-700 mb-1">Número</label>
@@ -488,6 +534,30 @@ export default function Debts() {
                 />
               </div>
 
+              <div className="grid grid-cols-2 gap-4">
+                <div>
+                  <label className="block text-sm font-semibold text-slate-700 mb-1">Status</label>
+                  <select 
+                    value={newItem.status}
+                    onChange={e => setNewItem({...newItem, status: e.target.value as any})}
+                    className="w-full px-4 py-2 rounded-xl border border-slate-200 focus:ring-2 focus:ring-primary-500 outline-none transition-all text-sm"
+                  >
+                    {Object.entries(statusConfig).map(([val, config]) => (
+                      <option key={val} value={val}>{config.label}</option>
+                    ))}
+                  </select>
+                </div>
+                <div>
+                  <label className="block text-sm font-semibold text-slate-700 mb-1">Data de Abertura</label>
+                  <input 
+                    type="date"
+                    value={newItem.opened_at}
+                    onChange={e => setNewItem({...newItem, opened_at: e.target.value})}
+                    className="w-full px-4 py-2 rounded-xl border border-slate-200 focus:ring-2 focus:ring-primary-500 outline-none transition-all text-sm"
+                  />
+                </div>
+              </div>
+
               <div>
                 <label className="block text-sm font-semibold text-slate-700 mb-1">Analista (Opcional)</label>
                 <select 
@@ -502,7 +572,7 @@ export default function Debts() {
                 </select>
               </div>
 
-              <div className="relative z-[60]">
+              <div className="relative z-[40]">
                 <label className="block text-sm font-semibold text-slate-700 mb-1">Organização (Opcional)</label>
                 <EntityAutocompleteSearch 
                   value={newItem.organization}
@@ -511,14 +581,37 @@ export default function Debts() {
                 />
               </div>
 
-              <div>
-                <label className="block text-sm font-semibold text-slate-700 mb-1">Data de Abertura</label>
-                <input 
-                  type="date"
-                  value={newItem.opened_at}
-                  onChange={e => setNewItem({...newItem, opened_at: e.target.value})}
-                  className="w-full px-4 py-2 rounded-xl border border-slate-200 focus:ring-2 focus:ring-primary-500 outline-none transition-all text-sm"
-                />
+              <div className="border-t border-slate-100 pt-3 space-y-3">
+                <h3 className="text-xs font-bold text-slate-400 uppercase tracking-wider">Responsáveis & Envolvidos</h3>
+
+                <div className="relative z-[30]">
+                  <label className="block text-sm font-semibold text-slate-700 mb-1">Responsável (Desenvolvimento)</label>
+                  <EmployeeAutocompleteSearch 
+                    value={newItem.responsible || ''}
+                    onChange={val => setNewItem({...newItem, responsible: val})}
+                    sectorFilter="Desenvolvimento"
+                    placeholder="Buscar responsável de Desenvolvimento..."
+                  />
+                </div>
+
+                <div className="relative z-[20]">
+                  <label className="block text-sm font-semibold text-slate-700 mb-1">PM Responsável do Squad (Produto)</label>
+                  <EmployeeAutocompleteSearch 
+                    value={newItem.pm_responsible || ''}
+                    onChange={val => setNewItem({...newItem, pm_responsible: val})}
+                    sectorFilter="Produto"
+                    placeholder="Buscar PM de Produto..."
+                  />
+                </div>
+
+                <div className="relative z-[10]">
+                  <label className="block text-sm font-semibold text-slate-700 mb-1">Solicitante da Demanda</label>
+                  <EmployeeAutocompleteSearch 
+                    value={newItem.requester || ''}
+                    onChange={val => setNewItem({...newItem, requester: val})}
+                    placeholder="Buscar solicitante..."
+                  />
+                </div>
               </div>
 
               <div className="pt-4 flex gap-3">
@@ -544,15 +637,15 @@ export default function Debts() {
       {/* Edit Modal */}
       {editingItem && (
         <div className="fixed inset-0 bg-slate-900/50 backdrop-blur-sm z-50 flex items-center justify-center p-4">
-          <div className="bg-white rounded-2xl shadow-xl w-full max-w-md overflow-hidden animate-in fade-in zoom-in duration-200">
-            <div className="px-6 py-4 border-b border-slate-100 flex items-center justify-between bg-slate-50/50">
+          <div className="bg-white rounded-2xl shadow-xl w-full max-w-lg max-h-[90vh] overflow-hidden flex flex-col animate-in fade-in zoom-in duration-200">
+            <div className="px-6 py-4 border-b border-slate-100 flex items-center justify-between bg-slate-50/50 flex-shrink-0">
               <h2 className="text-lg font-bold text-slate-900">Editar Débito Técnico</h2>
               <button onClick={() => setEditingItem(null)} className="text-slate-400 hover:text-slate-600 transition-colors">
                 <Plus className="w-5 h-5 rotate-45" />
               </button>
             </div>
             
-            <form onSubmit={handleUpdateItem} className="p-6 space-y-4">
+            <form onSubmit={handleUpdateItem} className="p-6 space-y-4 overflow-y-auto flex-1">
               <div className="grid grid-cols-3 gap-4">
                 <div>
                   <label className="block text-sm font-semibold text-slate-700 mb-1">Número</label>
@@ -586,17 +679,28 @@ export default function Debts() {
                 />
               </div>
 
-              <div>
-                <label className="block text-sm font-semibold text-slate-700 mb-1">Status</label>
-                <select 
-                  value={editingItem.status}
-                  onChange={e => editingItem && setEditingItem({...editingItem, status: e.target.value as any})}
-                  className="w-full px-4 py-2 rounded-xl border border-slate-200 focus:ring-2 focus:ring-primary-500 outline-none transition-all text-sm"
-                >
-                  {Object.entries(statusConfig).map(([val, config]) => (
-                    <option key={val} value={val}>{config.label}</option>
-                  ))}
-                </select>
+              <div className="grid grid-cols-2 gap-4">
+                <div>
+                  <label className="block text-sm font-semibold text-slate-700 mb-1">Status</label>
+                  <select 
+                    value={editingItem.status}
+                    onChange={e => editingItem && setEditingItem({...editingItem, status: e.target.value as any})}
+                    className="w-full px-4 py-2 rounded-xl border border-slate-200 focus:ring-2 focus:ring-primary-500 outline-none transition-all text-sm"
+                  >
+                    {Object.entries(statusConfig).map(([val, config]) => (
+                      <option key={val} value={val}>{config.label}</option>
+                    ))}
+                  </select>
+                </div>
+                <div>
+                  <label className="block text-sm font-semibold text-slate-700 mb-1">Data de Abertura</label>
+                  <input 
+                    type="date"
+                    value={editingItem.opened_at ? editingItem.opened_at.substring(0, 10) : ''}
+                    onChange={e => editingItem && setEditingItem({...editingItem, opened_at: e.target.value})}
+                    className="w-full px-4 py-2 rounded-xl border border-slate-200 focus:ring-2 focus:ring-primary-500 outline-none transition-all text-sm"
+                  />
+                </div>
               </div>
 
               <div>
@@ -613,7 +717,7 @@ export default function Debts() {
                 </select>
               </div>
 
-              <div className="relative z-[60]">
+              <div className="relative z-[40]">
                 <label className="block text-sm font-semibold text-slate-700 mb-1">Organização</label>
                 <EntityAutocompleteSearch 
                   value={editingItem.organization || ''}
@@ -621,14 +725,37 @@ export default function Debts() {
                 />
               </div>
 
-              <div>
-                <label className="block text-sm font-semibold text-slate-700 mb-1">Data de Abertura</label>
-                <input 
-                  type="date"
-                  value={editingItem.opened_at ? editingItem.opened_at.substring(0, 10) : ''}
-                  onChange={e => editingItem && setEditingItem({...editingItem, opened_at: e.target.value})}
-                  className="w-full px-4 py-2 rounded-xl border border-slate-200 focus:ring-2 focus:ring-primary-500 outline-none transition-all text-sm"
-                />
+              <div className="border-t border-slate-100 pt-3 space-y-3">
+                <h3 className="text-xs font-bold text-slate-400 uppercase tracking-wider">Responsáveis & Envolvidos</h3>
+
+                <div className="relative z-[30]">
+                  <label className="block text-sm font-semibold text-slate-700 mb-1">Responsável (Desenvolvimento)</label>
+                  <EmployeeAutocompleteSearch 
+                    value={editingItem.responsible || ''}
+                    onChange={val => editingItem && setEditingItem({...editingItem, responsible: val})}
+                    sectorFilter="Desenvolvimento"
+                    placeholder="Buscar responsável de Desenvolvimento..."
+                  />
+                </div>
+
+                <div className="relative z-[20]">
+                  <label className="block text-sm font-semibold text-slate-700 mb-1">PM Responsável do Squad (Produto)</label>
+                  <EmployeeAutocompleteSearch 
+                    value={editingItem.pm_responsible || ''}
+                    onChange={val => editingItem && setEditingItem({...editingItem, pm_responsible: val})}
+                    sectorFilter="Produto"
+                    placeholder="Buscar PM de Produto..."
+                  />
+                </div>
+
+                <div className="relative z-[10]">
+                  <label className="block text-sm font-semibold text-slate-700 mb-1">Solicitante da Demanda</label>
+                  <EmployeeAutocompleteSearch 
+                    value={editingItem.requester || ''}
+                    onChange={val => editingItem && setEditingItem({...editingItem, requester: val})}
+                    placeholder="Buscar solicitante..."
+                  />
+                </div>
               </div>
 
               <div className="pt-4 flex gap-3">

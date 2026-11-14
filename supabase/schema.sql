@@ -12,19 +12,19 @@ EXCEPTION
 END $$;
 
 DO $$ BEGIN
-    CREATE TYPE improvement_status AS ENUM ('OPEN', 'IN_PROGRESS', 'IN_TEST', 'FINISHED', 'CONVERTED_TO_DEBT');
+    CREATE TYPE improvement_status AS ENUM ('OPEN', 'IN_PROGRESS', 'IN_TEST', 'FINISHED', 'CONVERTED_TO_DEBT', 'CANCELED');
 EXCEPTION
     WHEN duplicate_object THEN null;
 END $$;
 
 DO $$ BEGIN
-    CREATE TYPE debt_status AS ENUM ('OPEN', 'IN_CORRECTION', 'RESOLVED');
+    CREATE TYPE debt_status AS ENUM ('OPEN', 'IN_CORRECTION', 'RESOLVED', 'CANCELED');
 EXCEPTION
     WHEN duplicate_object THEN null;
 END $$;
 
 DO $$ BEGIN
-    CREATE TYPE data_request_status AS ENUM ('PENDING', 'OPEN', 'ON_HOLD', 'FINISHED');
+    CREATE TYPE data_request_status AS ENUM ('PENDING', 'OPEN', 'ON_HOLD', 'FINISHED', 'CANCELED');
 EXCEPTION
     WHEN duplicate_object THEN null;
 END $$;
