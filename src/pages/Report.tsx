@@ -266,7 +266,7 @@ export default function Report() {
         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 no-print">
           <div>
             <h1 className="text-3xl font-bold text-slate-900">Relatório Consolidado</h1>
-            <p className="text-slate-500">Melhorias, Débitos Técnicos e Solicitações de Dados em aberto</p>
+            <p className="text-slate-500">Melhorias, Débitos Técnicos e Solicitações de Dados</p>
           </div>
           <button
             onClick={handlePrint}
@@ -398,7 +398,7 @@ export default function Report() {
                   onClick={() => setSelectedType('ALL')}
                   className={`bg-white border rounded-2xl p-5 print:shadow-none print:border print:rounded-lg cursor-pointer transition-all ${selectedType === 'ALL' ? 'ring-2 ring-primary-500 border-primary-500 shadow-md' : 'border-slate-100 shadow-sm hover:border-slate-300'}`}
                 >
-                  <p className="text-xs font-bold text-slate-400 uppercase mb-1">Total em Aberto</p>
+                  <p className="text-xs font-bold text-slate-400 uppercase mb-1">Total</p>
                   <p className="text-3xl font-bold text-slate-900">{totalOpen}</p>
                 </div>
                 <div 
@@ -434,7 +434,7 @@ export default function Report() {
               <div className="space-y-6">
                 {(selectedType === 'ALL' || selectedType === 'IMPROVEMENTS') && (
                   <SectionTable
-                    title="Melhorias em Aberto"
+                    title="Melhorias"
                     icon={<TrendingUp className="w-4 h-4 text-emerald-600" />}
                     color="border-emerald-100"
                     items={improvements}
@@ -442,7 +442,7 @@ export default function Report() {
                 )}
                 {(selectedType === 'ALL' || selectedType === 'DEBTS') && (
                   <SectionTable
-                    title="Débitos Técnicos em Aberto"
+                    title="Débitos Técnicos"
                     icon={<Wrench className="w-4 h-4 text-amber-600" />}
                     color="border-amber-100"
                     items={debts}
@@ -450,7 +450,7 @@ export default function Report() {
                 )}
                 {(selectedType === 'ALL' || selectedType === 'DATA_REQUESTS') && (
                   <SectionTable
-                    title="Solicitações de Dados em Aberto"
+                    title="Solicitações de Dados"
                     icon={<Database className="w-4 h-4 text-indigo-600" />}
                     color="border-indigo-100"
                     items={dataRequests}
