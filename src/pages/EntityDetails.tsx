@@ -8,6 +8,7 @@ import {
   entityUnitsService, 
   entityModulesService 
 } from '../services/api';
+import ModuleAutocompleteSearch from '../components/ModuleAutocompleteSearch';
 import { 
   ArrowLeft, FileText, ClipboardList, Building2, PackagePlus, 
   Plus, Trash2, Pencil, CheckCircle2, ChevronRight, Save, X,
@@ -262,7 +263,12 @@ export default function EntityDetails() {
                     <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                       <div className="sm:col-span-2">
                         <label className="block text-sm font-semibold text-slate-700 mb-1">Nome do Módulo (ex: AEE, PEI)</label>
-                        <input required value={formData.module_name || ''} onChange={e => setFormData({...formData, module_name: e.target.value})} className="w-full px-4 py-2 rounded-xl border border-slate-200 focus:ring-2 focus:ring-indigo-500" />
+                        <ModuleAutocompleteSearch
+                          mode="module"
+                          value={formData.module_name || ''}
+                          onChange={val => setFormData({...formData, module_name: val})}
+                          placeholder="Buscar módulo cadastrado..."
+                        />
                       </div>
                       <div className="sm:col-span-2">
                         <label className="block text-sm font-semibold text-slate-700 mb-1">Descrição Breve</label>

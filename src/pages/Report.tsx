@@ -250,6 +250,24 @@ export default function Report() {
       .slice(0, 10);
   }, [improvements, debts, dataRequests]);
 
+  // Items without module (for "Sem módulo" click)
+  const itemsWithoutModule = useMemo(() => {
+    const allItems = [
+      ...improvements.map((i: any) => ({ ...i, _type: 'Melhoria' })),
+      ...debts.map((d: any) => ({ ...d, _type: 'Débito Técnico' })),
+      ...dataRequests.map((dr: any) => ({ ...dr, _type: 'Solicitação de Dados' })),
+    ];
+    return allItems.filter((item: any) => !item.module?.trim());
+  }, [improvements, debts, dataRequests]);
+
+  const [showNoModuleModal, setShowNoModuleModal] = useState(false);
+
+  const handlePieClick = (data: any) => {
+    if (data && data.name === 'Sem módulo') {
+      setShowNoModuleModal(true);
+    }
+  };
+
   const handlePrint = () => window.print();
 
   const handleApplyFilters = () => fetchData();
@@ -356,7 +374,7 @@ export default function Report() {
                 onChange={e => setFilterStatus(e.target.value)}
                 className="w-full px-3 py-2 rounded-xl border border-slate-200 focus:ring-2 focus:ring-primary-500 outline-none text-sm bg-white"
               >
-                <option value="">Status em Aberto</option>
+                <option value="">Todos os Status</option>
                 {Object.keys(TRANSLATIONS).map(k => (
                   <option key={k} value={k}>{TRANSLATIONS[k]}</option>
                 ))}
@@ -421,9 +439,14 @@ export default function Report() {
           {moduleChartData.length > 0 && (
             <div className="mb-6 bg-white rounded-2xl border border-slate-100 p-5 print:border print:rounded-lg">
               <h2 className="text-lg font-bold text-slate-800 mb-1">Incidência por Módulo / Submódulo</h2>
-              <p className="text-xs text-slate-400 mb-4">
+              <p className="text-xs text-slate-400 mb-1">
                 Total de {improvements.length + debts.length + dataRequests.length} demandas no período filtrado
               </p>
+              {itemsWithoutModule.length > 0 && (
+                <p className="text-xs text-amber-600 mb-4">
+                  ⚠️ {itemsWithoutModule.length} demanda{itemsWithoutModule.length !== 1 ? 's' : ''} sem módulo — clique em "Sem módulo" no gráfico para visualizar.
+                </p>
+              )}
               <div style={{ width: '100%', height: 340 }}>
                 <ResponsiveContainer width="100%" height="100%">
                   <PieChart>
@@ -433,6 +456,8 @@ export default function Report() {
                       cy="50%"
                       outerRadius={120}
                       dataKey="value"
+                      onClick={handlePieClick}
+                      style={{ cursor: 'pointer' }}
                       label={({ name, value, percent }) =>
                         `${name}: ${value} (${(percent * 100).toFixed(0)}%)`
                       }
@@ -531,6 +556,70 @@ export default function Report() {
           )}
         </div>
       </div>
+
+      {/* Modal: Demandas sem módulo */}
+      {showNoModuleModal && (
+        <div className="fixed inset-0 bg-slate-900/50 backdrop-blur-sm z-50 flex items-center justify-center p-4 no-print">
+          <div className="bg-white rounded-2xl shadow-xl w-full max-w-2xl max-h-[85vh] overflow-hidden flex flex-col animate-in fade-in zoom-in-95 duration-200">
+            <div className="px-6 py-4 border-b border-slate-100 flex items-center justify-between bg-amber-50">
+              <div>
+                <h2 className="text-lg font-bold text-slate-900">Demandas sem módulo preenchido</h2>
+                <p className="text-xs text-slate-500 mt-0.5">{itemsWithoutModule.length} demanda{itemsWithoutModule.length !== 1 ? 's' : ''} precisam ter o módulo atualizado</p>
+              </div>
+              <button onClick={() => setShowNoModuleModal(false)} className="text-slate-400 hover:text-slate-600">
+                <AlertCircle className="w-5 h-5 rotate-45 opacity-0 absolute" />
+                <span className="text-xl font-bold leading-none">&times;</span>
+              </button>
+            </div>
+            <div className="overflow-y-auto flex-1">
+              {itemsWithoutModule.length === 0 ? (
+                <div className="p-8 text-center text-slate-400">Todas as demandas têm módulo preenchido! 🎉</div>
+              ) : (
+                <table className="w-full text-sm text-left">
+                  <thead className="bg-slate-50 border-b border-slate-100 sticky top-0">
+                    <tr>
+                      <th className="px-4 py-3 font-bold text-slate-500 text-xs uppercase">Tipo</th>
+                      <th className="px-4 py-3 font-bold text-slate-500 text-xs uppercase">Nº</th>
+                      <th className="px-4 py-3 font-bold text-slate-500 text-xs uppercase">Título / Descrição</th>
+                      <th className="px-4 py-3 font-bold text-slate-500 text-xs uppercase">Organização</th>
+                      <th className="px-4 py-3 font-bold text-slate-500 text-xs uppercase">Status</th>
+                    </tr>
+                  </thead>
+                  <tbody className="divide-y divide-slate-100">
+                    {itemsWithoutModule.map((item: any) => (
+                      <tr key={`${item._type}-${item.id}`} className="hover:bg-slate-50">
+                        <td className="px-4 py-3">
+                          <span className="text-xs font-semibold px-2 py-0.5 rounded-full bg-slate-100 text-slate-600 whitespace-nowrap">{item._type}</span>
+                        </td>
+                        <td className="px-4 py-3 text-xs text-slate-500">
+                          {item.external_id ? (
+                            item.external_url
+                              ? <a href={item.external_url} target="_blank" rel="noopener noreferrer" className="text-blue-600 hover:underline">{item.external_id}</a>
+                              : item.external_id
+                          ) : '—'}
+                        </td>
+                        <td className="px-4 py-3 text-slate-700 max-w-xs">
+                          <p className="font-semibold truncate">{item.title || item.description || '—'}</p>
+                        </td>
+                        <td className="px-4 py-3 text-xs text-slate-500">{item.organization || '—'}</td>
+                        <td className="px-4 py-3 text-xs text-slate-500">{item.status || '—'}</td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              )}
+            </div>
+            <div className="px-6 py-4 border-t border-slate-100 flex justify-end">
+              <button
+                onClick={() => setShowNoModuleModal(false)}
+                className="px-4 py-2 rounded-xl bg-slate-800 text-white text-sm font-semibold hover:bg-slate-900 transition-colors"
+              >
+                Fechar
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </Layout>
   );
 }

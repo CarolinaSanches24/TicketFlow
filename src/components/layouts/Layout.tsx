@@ -4,7 +4,7 @@ import { useUser } from '../../contexts/UserContext';
 import { 
   LayoutDashboard, Ticket, Rocket, Wrench, LogOut, User as UserIcon, 
   Database, FileText, Landmark, Calculator, Settings, ChevronDown, ChevronRight,
-  Building2, Users 
+  Building2, Users, Layers
 } from 'lucide-react';
 
 const Layout: React.FC<{ children: React.ReactNode }> = ({ children }) => {
@@ -109,6 +109,17 @@ const Layout: React.FC<{ children: React.ReactNode }> = ({ children }) => {
                 >
                   <Users className="w-4 h-4 text-slate-400" />
                   Funcionários
+                </Link>
+                <Link
+                  to="/settings/modules"
+                  className={`flex items-center gap-2.5 px-3 py-2 rounded-lg text-xs font-semibold transition-colors ${
+                    location.pathname === '/settings/modules'
+                      ? 'bg-primary-100/70 text-primary-700 font-bold'
+                      : 'text-slate-600 hover:bg-slate-50'
+                  }`}
+                >
+                  <Layers className="w-4 h-4 text-slate-400" />
+                  Módulos
                 </Link>
               </div>
             )}

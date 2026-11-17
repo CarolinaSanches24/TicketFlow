@@ -10,6 +10,7 @@ import { useUser } from '../contexts/UserContext';
 import { debtService, authService } from '../services/api';
 import EntityAutocompleteSearch from '../components/EntityAutocompleteSearch';
 import EmployeeAutocompleteSearch from '../components/EmployeeAutocompleteSearch';
+import ModuleAutocompleteSearch from '../components/ModuleAutocompleteSearch';
 import { Plus, Search, User as UserIcon, Calendar, CheckCircle2, Clock, PlayCircle, Wrench, Info, Edit2, Trash2, Ban } from 'lucide-react';
 
 interface Debt {
@@ -22,6 +23,8 @@ interface Debt {
   analyst_id: string | null;
   analyst?: { name: string };
   organization?: string | null;
+  module?: string | null;
+  submodule?: string | null;
   responsible?: string | null;
   pm_responsible?: string | null;
   requester?: string | null;
@@ -64,6 +67,8 @@ export default function Debts() {
     analystId: '',
     organization: '',
     opened_at: '',
+    module: '',
+    submodule: '',
     responsible: '',
     pm_responsible: '',
     requester: ''
@@ -113,6 +118,8 @@ export default function Debts() {
         opened_at: newItem.opened_at || null,
         origin_type: 'MANUAL',
         status: newItem.status || 'OPEN',
+        module: newItem.module || null,
+        submodule: newItem.submodule || null,
         responsible: newItem.responsible || null,
         pm_responsible: newItem.pm_responsible || null,
         requester: newItem.requester || null
@@ -121,7 +128,7 @@ export default function Debts() {
       setIsModalOpen(false);
       setNewItem({ 
         external_id: '', external_url: '', description: '', status: 'OPEN',
-        analystId: '', organization: '', opened_at: '', responsible: '', pm_responsible: '', requester: '' 
+        analystId: '', organization: '', opened_at: '', module: '', submodule: '', responsible: '', pm_responsible: '', requester: '' 
       });
       fetchItems();
     } catch (error) {
@@ -155,6 +162,8 @@ export default function Debts() {
         opened_at: editingItem.opened_at,
         status: editingItem.status,
         origin_type: editingItem.origin_type,
+        module: editingItem.module || null,
+        submodule: editingItem.submodule || null,
         responsible: editingItem.responsible || null,
         pm_responsible: editingItem.pm_responsible || null,
         requester: editingItem.requester || null
@@ -624,6 +633,28 @@ export default function Debts() {
                 />
               </div>
 
+              <div className="grid grid-cols-2 gap-4">
+                <div>
+                  <label className="block text-sm font-semibold text-slate-700 mb-1">Módulo</label>
+                  <ModuleAutocompleteSearch
+                    mode="module"
+                    value={newItem.module}
+                    onChange={val => setNewItem({...newItem, module: val, submodule: ''})}
+                    placeholder="Ex: Financeiro"
+                  />
+                </div>
+                <div>
+                  <label className="block text-sm font-semibold text-slate-700 mb-1">Submódulo</label>
+                  <ModuleAutocompleteSearch
+                    mode="submodule"
+                    moduleFilter={newItem.module}
+                    value={newItem.submodule}
+                    onChange={val => setNewItem({...newItem, submodule: val})}
+                    placeholder="Ex: Contas a Pagar"
+                  />
+                </div>
+              </div>
+
               <div className="border-t border-slate-100 pt-3 space-y-3">
                 <h3 className="text-xs font-bold text-slate-400 uppercase tracking-wider">Responsáveis & Envolvidos</h3>
 
@@ -766,6 +797,28 @@ export default function Debts() {
                   value={editingItem.organization || ''}
                   onChange={val => editingItem && setEditingItem({...editingItem, organization: val})}
                 />
+              </div>
+
+              <div className="grid grid-cols-2 gap-4">
+                <div>
+                  <label className="block text-sm font-semibold text-slate-700 mb-1">Módulo</label>
+                  <ModuleAutocompleteSearch
+                    mode="module"
+                    value={editingItem.module || ''}
+                    onChange={val => editingItem && setEditingItem({...editingItem, module: val, submodule: ''})}
+                    placeholder="Ex: Financeiro"
+                  />
+                </div>
+                <div>
+                  <label className="block text-sm font-semibold text-slate-700 mb-1">Submódulo</label>
+                  <ModuleAutocompleteSearch
+                    mode="submodule"
+                    moduleFilter={editingItem.module || ''}
+                    value={editingItem.submodule || ''}
+                    onChange={val => editingItem && setEditingItem({...editingItem, submodule: val})}
+                    placeholder="Ex: Contas a Pagar"
+                  />
+                </div>
               </div>
 
               <div className="border-t border-slate-100 pt-3 space-y-3">

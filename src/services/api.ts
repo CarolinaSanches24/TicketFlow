@@ -637,6 +637,76 @@ export const evaluationCriteriaConfigService = {
   }
 };
 
+export const moduleService = {
+  // Modules
+  getAllModules: async () => {
+    const { data, error } = await supabase
+      .from('system_modules')
+      .select('*')
+      .order('name', { ascending: true });
+    if (error) throw error;
+    return data || [];
+  },
+  createModule: async (payload: { name: string; description?: string }) => {
+    const { data, error } = await supabase
+      .from('system_modules')
+      .insert([payload])
+      .select()
+      .single();
+    if (error) throw error;
+    return data;
+  },
+  updateModule: async (id: string, payload: { name: string; description?: string }) => {
+    const { data, error } = await supabase
+      .from('system_modules')
+      .update(payload)
+      .eq('id', id)
+      .select()
+      .single();
+    if (error) throw error;
+    return data;
+  },
+  deleteModule: async (id: string) => {
+    const { error } = await supabase.from('system_modules').delete().eq('id', id);
+    if (error) throw error;
+  },
+
+  // Submodules
+  getAllSubmodules: async (moduleId?: string) => {
+    let query = supabase
+      .from('system_submodules')
+      .select('*, module:system_modules(*)')
+      .order('name', { ascending: true });
+    if (moduleId) query = query.eq('module_id', moduleId);
+    const { data, error } = await query;
+    if (error) throw error;
+    return data || [];
+  },
+  createSubmodule: async (payload: { name: string; module_id: string; description?: string }) => {
+    const { data, error } = await supabase
+      .from('system_submodules')
+      .insert([payload])
+      .select('*, module:system_modules(*)')
+      .single();
+    if (error) throw error;
+    return data;
+  },
+  updateSubmodule: async (id: string, payload: { name?: string; module_id?: string; description?: string }) => {
+    const { data, error } = await supabase
+      .from('system_submodules')
+      .update(payload)
+      .eq('id', id)
+      .select('*, module:system_modules(*)')
+      .single();
+    if (error) throw error;
+    return data;
+  },
+  deleteSubmodule: async (id: string) => {
+    const { error } = await supabase.from('system_submodules').delete().eq('id', id);
+    if (error) throw error;
+  },
+};
+
 export const sectorService = {
   getAll: async () => {
     const { data, error } = await supabase

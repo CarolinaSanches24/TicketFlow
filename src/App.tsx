@@ -12,6 +12,7 @@ import Report from './pages/Report';
 import EvaluationCriteria from './pages/EvaluationCriteria';
 import Sectors from './pages/Sectors';
 import Employees from './pages/Employees';
+import Modules from './pages/Modules';
 import { UserProvider, useUser } from './contexts/UserContext';
 
 const ProtectedRoute = ({ children }: { children: React.ReactNode }) => {
@@ -41,6 +42,7 @@ function AppRoutes() {
       <Route path="/users" element={<ProtectedRoute><Users /></ProtectedRoute>} />
       <Route path="/settings/sectors" element={<ProtectedRoute><Sectors /></ProtectedRoute>} />
       <Route path="/settings/employees" element={<ProtectedRoute><Employees /></ProtectedRoute>} />
+      <Route path="/settings/modules" element={<ProtectedRoute><Modules /></ProtectedRoute>} />
     </Routes>
   );
 }

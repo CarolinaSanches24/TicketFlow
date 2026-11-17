@@ -10,6 +10,7 @@ import { useUser } from '../contexts/UserContext';
 import { improvementService, authService } from '../services/api';
 import EntityAutocompleteSearch from '../components/EntityAutocompleteSearch';
 import EmployeeAutocompleteSearch from '../components/EmployeeAutocompleteSearch';
+import ModuleAutocompleteSearch from '../components/ModuleAutocompleteSearch';
 import { Plus, Search, User as UserIcon, Calendar, CheckCircle2, Clock, PlayCircle, Beaker, AlertTriangle, Eye, EyeOff, Edit2, Trash2, TrendingUp, Ban } from 'lucide-react';
 
 interface Improvement {
@@ -629,21 +630,20 @@ export default function Improvements() {
               <div className="grid grid-cols-2 gap-4">
                 <div>
                   <label className="block text-sm font-semibold text-slate-700 mb-1">Módulo</label>
-                  <input 
-                    type="text" 
+                  <ModuleAutocompleteSearch
+                    mode="module"
                     value={newItem.module}
-                    onChange={e => setNewItem({...newItem, module: e.target.value})}
-                    className="w-full px-4 py-2 rounded-xl border border-slate-200 focus:ring-2 focus:ring-primary-500 outline-none transition-all text-sm"
+                    onChange={val => setNewItem({...newItem, module: val, submodule: ''})}
                     placeholder="Ex: Financeiro"
                   />
                 </div>
                 <div>
                   <label className="block text-sm font-semibold text-slate-700 mb-1">Submódulo</label>
-                  <input 
-                    type="text" 
+                  <ModuleAutocompleteSearch
+                    mode="submodule"
+                    moduleFilter={newItem.module}
                     value={newItem.submodule}
-                    onChange={e => setNewItem({...newItem, submodule: e.target.value})}
-                    className="w-full px-4 py-2 rounded-xl border border-slate-200 focus:ring-2 focus:ring-primary-500 outline-none transition-all text-sm"
+                    onChange={val => setNewItem({...newItem, submodule: val})}
                     placeholder="Ex: Contas a Pagar"
                   />
                 </div>
@@ -807,20 +807,21 @@ export default function Improvements() {
               <div className="grid grid-cols-2 gap-4">
                 <div>
                   <label className="block text-sm font-semibold text-slate-700 mb-1">Módulo</label>
-                  <input 
-                    type="text" 
+                  <ModuleAutocompleteSearch
+                    mode="module"
                     value={editingItem.module || ''}
-                    onChange={e => editingItem && setEditingItem({...editingItem, module: e.target.value})}
-                    className="w-full px-4 py-2 rounded-xl border border-slate-200 focus:ring-2 focus:ring-primary-500 outline-none transition-all text-sm"
+                    onChange={val => editingItem && setEditingItem({...editingItem, module: val, submodule: ''})}
+                    placeholder="Ex: Financeiro"
                   />
                 </div>
                 <div>
                   <label className="block text-sm font-semibold text-slate-700 mb-1">Submódulo</label>
-                  <input 
-                    type="text" 
+                  <ModuleAutocompleteSearch
+                    mode="submodule"
+                    moduleFilter={editingItem.module || ''}
                     value={editingItem.submodule || ''}
-                    onChange={e => editingItem && setEditingItem({...editingItem, submodule: e.target.value})}
-                    className="w-full px-4 py-2 rounded-xl border border-slate-200 focus:ring-2 focus:ring-primary-500 outline-none transition-all text-sm"
+                    onChange={val => editingItem && setEditingItem({...editingItem, submodule: val})}
+                    placeholder="Ex: Contas a Pagar"
                   />
                 </div>
               </div>
