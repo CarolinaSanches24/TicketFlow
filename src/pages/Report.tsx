@@ -58,6 +58,8 @@ function SectionTable({ title, icon, color, items }: SectionTableProps) {
     </div>
   );
 
+  const hasTitleColumn = items.some((i: any) => i.title);
+
   return (
     <div className={`rounded-xl border ${color} overflow-hidden print:break-inside-avoid`}>
       <div className="flex items-center gap-2 px-5 py-3 bg-slate-50/80 border-b border-slate-100">
@@ -71,12 +73,18 @@ function SectionTable({ title, icon, color, items }: SectionTableProps) {
         <table className="w-full text-left border-collapse text-sm">
           <thead>
             <tr className="border-b border-slate-100 bg-white">
-              <th className="px-4 py-2 text-xs font-bold text-slate-400 uppercase tracking-wider">Nº</th>
-              <th className="px-4 py-2 text-xs font-bold text-slate-400 uppercase tracking-wider">Título / Descrição</th>
-              <th className="px-4 py-2 text-xs font-bold text-slate-400 uppercase tracking-wider">Responsáveis</th>
-              <th className="px-4 py-2 text-xs font-bold text-slate-400 uppercase tracking-wider">Analista</th>
-              <th className="px-4 py-2 text-xs font-bold text-slate-400 uppercase tracking-wider">Status</th>
-              <th className="px-4 py-2 text-xs font-bold text-slate-400 uppercase tracking-wider">Abertura</th>
+              <th className="px-4 py-2.5 text-xs font-bold text-slate-400 uppercase tracking-wider whitespace-nowrap">Nº</th>
+              {hasTitleColumn && (
+                <th className="px-4 py-2.5 text-xs font-bold text-slate-400 uppercase tracking-wider whitespace-nowrap">Título</th>
+              )}
+              <th className="px-4 py-2.5 text-xs font-bold text-slate-400 uppercase tracking-wider">Descrição</th>
+              {!hasTitleColumn && (
+                <th className="px-4 py-2.5 text-xs font-bold text-slate-400 uppercase tracking-wider whitespace-nowrap">Origem</th>
+              )}
+              <th className="px-4 py-2.5 text-xs font-bold text-slate-400 uppercase tracking-wider whitespace-nowrap">Responsáveis</th>
+              <th className="px-4 py-2.5 text-xs font-bold text-slate-400 uppercase tracking-wider whitespace-nowrap">Analista</th>
+              <th className="px-4 py-2.5 text-xs font-bold text-slate-400 uppercase tracking-wider whitespace-nowrap">Status</th>
+              <th className="px-4 py-2.5 text-xs font-bold text-slate-400 uppercase tracking-wider whitespace-nowrap">Abertura</th>
             </tr>
           </thead>
           <tbody>
@@ -84,7 +92,7 @@ function SectionTable({ title, icon, color, items }: SectionTableProps) {
               const formattedLink = formatUrl(item.external_url);
               return (
                 <tr key={item.id} className="border-b border-slate-50 last:border-0 hover:bg-slate-50/50">
-                  <td className="px-4 py-2.5">
+                  <td className="px-4 py-2.5 whitespace-nowrap align-top">
                     {formattedLink ? (
                       <a
                         href={formattedLink}
@@ -100,15 +108,26 @@ function SectionTable({ title, icon, color, items }: SectionTableProps) {
                       <span className="font-mono text-xs text-slate-500">#{item.external_id || '—'}</span>
                     )}
                   </td>
-                  <td className="px-4 py-2.5 max-w-xs">
-                    <span className="font-semibold text-slate-900 block truncate">
-                      {item.title || item.description?.substring(0, 60) + '...' || '—'}
-                    </span>
-                    {item.title && item.description && (
-                      <span className="text-xs text-slate-400 block truncate">{item.description}</span>
-                    )}
+                  {hasTitleColumn && (
+                    <td className="px-4 py-2.5 align-top min-w-[140px] max-w-[200px]">
+                      <span className="font-semibold text-slate-900 text-xs sm:text-sm block">
+                        {item.title || '—'}
+                      </span>
+                    </td>
+                  )}
+                  <td className="px-4 py-2.5 align-top min-w-[200px] max-w-md">
+                    <p className="text-xs text-slate-700 leading-relaxed whitespace-pre-line break-words">
+                      {item.description || '—'}
+                    </p>
                   </td>
-                  <td className="px-4 py-2.5 text-xs text-slate-600 whitespace-nowrap">
+                  {!hasTitleColumn && (
+                    <td className="px-4 py-2.5 whitespace-nowrap align-top">
+                      <span className="text-[10px] font-mono bg-slate-100 px-1.5 py-0.5 rounded text-slate-600 font-bold">
+                        {item.origin_type || 'MANUAL'}
+                      </span>
+                    </td>
+                  )}
+                  <td className="px-4 py-2.5 text-xs text-slate-600 whitespace-nowrap align-top">
                     {item.responsible && (
                       <div className="truncate max-w-[140px]" title={`Responsável: ${item.responsible}`}>
                         <span className="font-semibold text-slate-400">Dev:</span> {item.responsible}
@@ -128,15 +147,15 @@ function SectionTable({ title, icon, color, items }: SectionTableProps) {
                       <span className="text-slate-400">—</span>
                     )}
                   </td>
-                  <td className="px-4 py-2.5 text-slate-600 whitespace-nowrap">
+                  <td className="px-4 py-2.5 text-slate-600 whitespace-nowrap align-top">
                     {item.analyst?.name || '—'}
                   </td>
-                  <td className="px-4 py-2.5">
+                  <td className="px-4 py-2.5 whitespace-nowrap align-top">
                     <span className="text-xs font-bold px-2 py-0.5 rounded-full bg-slate-100 text-slate-600 whitespace-nowrap">
                       {translateStatus(item.status)}
                     </span>
                   </td>
-                  <td className="px-4 py-2.5 text-slate-500 whitespace-nowrap text-xs">
+                  <td className="px-4 py-2.5 text-slate-500 whitespace-nowrap text-xs align-top">
                     {formatDate(item.opened_at || item.created_at)}
                   </td>
                 </tr>

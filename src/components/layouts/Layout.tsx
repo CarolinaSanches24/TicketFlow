@@ -140,7 +140,7 @@ const Layout: React.FC<{ children: React.ReactNode }> = ({ children }) => {
            {/* Mobile header could go here */}
            <h1 className="text-lg font-bold text-primary-600">TicketFlow</h1>
         </header>
-        <div className="p-8 max-w-7xl mx-auto print:p-0 print:max-w-none print:w-full">
+        <div className="p-4 sm:p-6 lg:p-8 max-w-[1600px] w-full mx-auto print:p-0 print:max-w-none print:w-full">
           {children}
         </div>
       </main>
