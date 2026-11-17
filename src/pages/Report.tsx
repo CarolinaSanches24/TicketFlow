@@ -1,8 +1,11 @@
-import { useState, useEffect, useRef } from 'react';
+import { useState, useEffect, useRef, useMemo } from 'react';
+import { PieChart, Pie, Cell, Tooltip, Legend, ResponsiveContainer } from 'recharts';
 import Layout from '../components/layouts/Layout';
 import { dashboardService, authService } from '../services/api';
 import { Printer, Filter, TrendingUp, Wrench, Database, AlertCircle, Ticket, ExternalLink } from 'lucide-react';
 import EntityAutocompleteSearch from '../components/EntityAutocompleteSearch';
+
+const COLORS = ['#3b82f6', '#10b981', '#f59e0b', '#ef4444', '#8b5cf6', '#ec4899', '#14b8a6', '#f97316', '#6366f1', '#84cc16'];
 
 const TRANSLATIONS: Record<string, string> = {
   'PENDING': 'Pendente',
@@ -231,6 +234,22 @@ export default function Report() {
 
   const totalOpen = improvements.length + debts.length + dataRequests.length;
 
+  // Module/submodule distribution for pie chart
+  const moduleChartData = useMemo(() => {
+    const allItems = [...improvements, ...debts, ...dataRequests];
+    const counts: Record<string, number> = {};
+    allItems.forEach((item: any) => {
+      const mod = item.module?.trim() || null;
+      const sub = item.submodule?.trim() || null;
+      const key = mod ? (sub ? `${mod} › ${sub}` : mod) : 'Sem módulo';
+      counts[key] = (counts[key] || 0) + 1;
+    });
+    return Object.entries(counts)
+      .map(([name, value]) => ({ name, value }))
+      .sort((a, b) => b.value - a.value)
+      .slice(0, 10);
+  }, [improvements, debts, dataRequests]);
+
   const handlePrint = () => window.print();
 
   const handleApplyFilters = () => fetchData();
@@ -258,6 +277,10 @@ export default function Report() {
             padding: 0 !important;
             margin: 0 !important;
           }
+          svg, svg * {
+            -webkit-print-color-adjust: exact !important;
+            print-color-adjust: exact !important;
+          }
         }
       `}</style>
 
@@ -265,7 +288,9 @@ export default function Report() {
         {/* Header */}
         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 no-print">
           <div>
-            <h1 className="text-3xl font-bold text-slate-900">Relatório Consolidado</h1>
+            <h1 className="text-3xl font-bold text-slate-900">
+              Relatório Consolidado{filterOrganization ? ` — ${filterOrganization}` : ''}
+            </h1>
             <p className="text-slate-500">Melhorias, Débitos Técnicos e Solicitações de Dados</p>
           </div>
           <button
@@ -380,13 +405,50 @@ export default function Report() {
         <div id="report-print-area" ref={printRef}>
           {/* Print Header */}
           <div className="hidden print:block mb-6 border-b pb-4">
-            <h1 className="text-2xl font-bold text-slate-900">Relatório Consolidado — TicketFlow</h1>
+            <h1 className="text-2xl font-bold text-slate-900">
+              Relatório Consolidado — {filterOrganization || 'Todas as Organizações'}
+            </h1>
             <p className="text-sm text-slate-500 mt-1">
-              {selectedAnalyst ? `Analista: ${selectedAnalyst}` : 'Todos os analistas'}
-              {startDate || endDate ? ` · Período: ${startDate ? formatDate(startDate) : '...'} até ${endDate ? formatDate(endDate) : '...'}` : ''}
+              {startDate || endDate
+                ? `Período: ${startDate ? formatDate(startDate) : 'início'} até ${endDate ? formatDate(endDate) : 'hoje'}`
+                : 'Período: Todos os registros'}
+              {selectedAnalyst ? ` · Analista: ${selectedAnalyst}` : ''}
               {` · Gerado em: ${new Date().toLocaleDateString('pt-BR')} ${new Date().toLocaleTimeString('pt-BR')}`}
             </p>
           </div>
+
+          {/* Module/Submodule Pie Chart */}
+          {moduleChartData.length > 0 && (
+            <div className="mb-6 bg-white rounded-2xl border border-slate-100 p-5 print:border print:rounded-lg">
+              <h2 className="text-lg font-bold text-slate-800 mb-1">Incidência por Módulo / Submódulo</h2>
+              <p className="text-xs text-slate-400 mb-4">
+                Total de {improvements.length + debts.length + dataRequests.length} demandas no período filtrado
+              </p>
+              <div style={{ width: '100%', height: 340 }}>
+                <ResponsiveContainer width="100%" height="100%">
+                  <PieChart>
+                    <Pie
+                      data={moduleChartData}
+                      cx="50%"
+                      cy="50%"
+                      outerRadius={120}
+                      dataKey="value"
+                      label={({ name, value, percent }) =>
+                        `${name}: ${value} (${(percent * 100).toFixed(0)}%)`
+                      }
+                      labelLine={true}
+                    >
+                      {moduleChartData.map((_entry, index) => (
+                        <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
+                      ))}
+                    </Pie>
+                    <Tooltip formatter={(value: number) => [`${value} demandas`, 'Total']} />
+                    <Legend />
+                  </PieChart>
+                </ResponsiveContainer>
+              </div>
+            </div>
+          )}
 
           {loading ? (
             <div className="p-16 text-center text-slate-400">Carregando relatório...</div>
