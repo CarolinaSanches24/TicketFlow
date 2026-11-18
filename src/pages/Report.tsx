@@ -1,8 +1,9 @@
 import { useState, useEffect, useRef, useMemo } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { PieChart, Pie, Cell, Tooltip, Legend, ResponsiveContainer } from 'recharts';
 import Layout from '../components/layouts/Layout';
 import { dashboardService, authService } from '../services/api';
-import { Printer, Filter, TrendingUp, Wrench, Database, AlertCircle, Ticket, ExternalLink } from 'lucide-react';
+import { Printer, Filter, TrendingUp, Wrench, Database, AlertCircle, Ticket, ExternalLink, Edit2 } from 'lucide-react';
 import EntityAutocompleteSearch from '../components/EntityAutocompleteSearch';
 
 const COLORS = ['#3b82f6', '#10b981', '#f59e0b', '#ef4444', '#8b5cf6', '#ec4899', '#14b8a6', '#f97316', '#6366f1', '#84cc16'];
@@ -172,6 +173,7 @@ function SectionTable({ title, icon, color, items }: SectionTableProps) {
 }
 
 export default function Report() {
+  const navigate = useNavigate();
   const [loading, setLoading] = useState(true);
   const [stats, setStats] = useState<any>(null);
   const [analysts, setAnalysts] = useState<{ id: string; name: string }[]>([]);
@@ -266,6 +268,17 @@ export default function Report() {
     if (data && data.name === 'Sem módulo') {
       setShowNoModuleModal(true);
     }
+  };
+
+  const getEditRoute = (type: string, id: string) => {
+    if (type === 'Melhoria') return `/improvements?edit=${id}`;
+    if (type === 'Débito Técnico') return `/debts?edit=${id}`;
+    return `/data-requests?edit=${id}`;
+  };
+
+  const goToEdit = (item: any) => {
+    setShowNoModuleModal(false);
+    navigate(getEditRoute(item._type, item.id));
   };
 
   const handlePrint = () => window.print();
@@ -583,6 +596,7 @@ export default function Report() {
                       <th className="px-4 py-3 font-bold text-slate-500 text-xs uppercase">Título / Descrição</th>
                       <th className="px-4 py-3 font-bold text-slate-500 text-xs uppercase">Organização</th>
                       <th className="px-4 py-3 font-bold text-slate-500 text-xs uppercase">Status</th>
+                      <th className="px-4 py-3 font-bold text-slate-500 text-xs uppercase text-right">Ação</th>
                     </tr>
                   </thead>
                   <tbody className="divide-y divide-slate-100">
@@ -603,6 +617,16 @@ export default function Report() {
                         </td>
                         <td className="px-4 py-3 text-xs text-slate-500">{item.organization || '—'}</td>
                         <td className="px-4 py-3 text-xs text-slate-500">{item.status || '—'}</td>
+                        <td className="px-4 py-3 text-right">
+                          <button
+                            onClick={() => goToEdit(item)}
+                            title="Ir para edição"
+                            className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-primary-50 text-primary-700 hover:bg-primary-100 font-semibold text-xs transition-colors whitespace-nowrap"
+                          >
+                            <Edit2 className="w-3.5 h-3.5" />
+                            Editar
+                          </button>
+                        </td>
                       </tr>
                     ))}
                   </tbody>

@@ -8,6 +8,7 @@ import {
 } from '@tanstack/react-table';
 import { useUser } from '../contexts/UserContext';
 import { improvementService, authService } from '../services/api';
+import { useSearchParams } from 'react-router-dom';
 import EntityAutocompleteSearch from '../components/EntityAutocompleteSearch';
 import EmployeeAutocompleteSearch from '../components/EmployeeAutocompleteSearch';
 import ModuleAutocompleteSearch from '../components/ModuleAutocompleteSearch';
