@@ -8,6 +8,7 @@ import {
 } from '@tanstack/react-table';
 import { useUser } from '../contexts/UserContext';
 import { debtService, authService } from '../services/api';
+import { useSearchParams } from 'react-router-dom';
 import EntityAutocompleteSearch from '../components/EntityAutocompleteSearch';
 import EmployeeAutocompleteSearch from '../components/EmployeeAutocompleteSearch';
 import ModuleAutocompleteSearch from '../components/ModuleAutocompleteSearch';
@@ -82,8 +83,10 @@ export default function Debts() {
       setLoading(true);
       const items = await debtService.getAll();
       setData(items);
+      return items;
     } catch (error) {
       console.error(error);
+      return [];
     } finally {
       setLoading(false);
     }
@@ -98,9 +101,20 @@ export default function Debts() {
     }
   };
 
+  const [searchParams, setSearchParams] = useSearchParams();
+
   useEffect(() => {
-    fetchItems();
-    fetchAnalysts();
+    const run = async () => {
+      const items = await fetchItems();
+      await fetchAnalysts();
+      const editId = searchParams.get('edit');
+      if (editId && items.length > 0) {
+        const found = items.find((i: any) => i.id === editId);
+        if (found) setEditingItem(found);
+        setSearchParams({}, { replace: true });
+      }
+    };
+    run();
   }, []);
 
   const handleCreateDebt = async (e: React.FormEvent) => {

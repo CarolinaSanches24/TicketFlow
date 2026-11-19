@@ -4,7 +4,7 @@ import { useUser } from '../../contexts/UserContext';
 import { 
   LayoutDashboard, Ticket, Rocket, Wrench, LogOut, User as UserIcon, 
   Database, FileText, Landmark, Calculator, Settings, ChevronDown, ChevronRight,
-  Building2, Users, Layers
+  Building2, Users, Layers, BarChart2
 } from 'lucide-react';
 
 const Layout: React.FC<{ children: React.ReactNode }> = ({ children }) => {
@@ -28,6 +28,7 @@ const Layout: React.FC<{ children: React.ReactNode }> = ({ children }) => {
     { name: 'Dados', path: '/data-requests', icon: Database },
     { name: 'Critérios Avaliativos', path: '/evaluation-criteria', icon: Calculator },
     { name: 'Relatório', path: '/report', icon: FileText },
+    { name: 'Chamados', path: '/tickets-dashboard', icon: BarChart2 },
   ];
 
   if (user?.role === 'ADMIN') {

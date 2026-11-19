@@ -87,8 +87,10 @@ export default function Improvements() {
       setLoading(true);
       const items = await improvementService.getAll();
       setData(items);
+      return items;
     } catch (error) {
       console.error(error);
+      return [];
     } finally {
       setLoading(false);
     }
@@ -103,9 +105,20 @@ export default function Improvements() {
     }
   };
 
+  const [searchParams, setSearchParams] = useSearchParams();
+
   useEffect(() => {
-    fetchItems();
-    fetchAnalysts();
+    const run = async () => {
+      const items = await fetchItems();
+      await fetchAnalysts();
+      const editId = searchParams.get('edit');
+      if (editId && items.length > 0) {
+        const found = items.find((i: any) => i.id === editId);
+        if (found) setEditingItem(found);
+        setSearchParams({}, { replace: true });
+      }
+    };
+    run();
   }, []);
 
   const handleCreateImprovement = async (e: React.FormEvent) => {
