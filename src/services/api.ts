@@ -246,6 +246,42 @@ export const authService = {
       .order('created_at', { ascending: false });
     if (error) throw error;
     return data;
+  },
+
+  adminUpdatePassword: async (targetUserId: string, newPassword: string, creatorId: string) => {
+    if (!newPassword || newPassword.length < 6) {
+      throw new Error('A nova senha deve ter no mínimo 6 caracteres.');
+    }
+
+    const { error } = await supabase.rpc('admin_update_user_password', {
+      target_user_id: targetUserId,
+      new_password: newPassword
+    });
+
+    if (error) {
+      if (error.message?.includes('admin_update_user_password') || error.code === 'PGRST202') {
+        throw new Error('A função RPC admin_update_user_password precisa ser criada no Supabase executando o script supabase/leadership_and_shared_tickets.sql.');
+      }
+      throw error;
+    }
+
+    try {
+      const { data: targetProfile } = await supabase
+        .from('profiles')
+        .select('email')
+        .eq('id', targetUserId)
+        .single();
+
+      await supabase.from('user_audit_logs').insert([{
+        target_user_id: targetUserId,
+        target_user_email: targetProfile?.email || 'N/A',
+        action: 'UPDATE',
+        details: 'Senha de acesso redefinida pelo Administrador',
+        creator_id: creatorId
+      }]);
+    } catch (auditErr) {
+      console.warn('Erro ao registrar log de auditoria de senha:', auditErr);
+    }
   }
 };
 
@@ -570,26 +606,38 @@ export const dashboardService = {
       supabase.from('user_data').select('id, name')
     ]);
 
+    const normalizeItems = (items: any[] | null) => {
+      if (!items) return [];
+      return items.map(item => ({
+        ...item,
+        status: item.status === 'FINISHED' ? 'RESOLVED' : item.status
+      }));
+    };
+
+    const impData = normalizeItems(improvements.data);
+    const debtData = normalizeItems(debts.data);
+    const drData = normalizeItems(dataRequests.data);
+
     const totals = {
-      improvements: improvements.data?.length || 0,
-      debts: debts.data?.length || 0,
-      dataRequests: dataRequests.data?.length || 0,
-      grandTotal: (improvements.data?.length || 0) + (debts.data?.length || 0) + (dataRequests.data?.length || 0)
+      improvements: impData.length,
+      debts: debtData.length,
+      dataRequests: drData.length,
+      grandTotal: impData.length + debtData.length + drData.length
     };
 
     const byStatus = {
-      improvements: aggregateByStatus(improvements.data),
-      debts: aggregateByStatus(debts.data),
-      dataRequests: aggregateByStatus(dataRequests.data),
+      improvements: aggregateByStatus(impData),
+      debts: aggregateByStatus(debtData),
+      dataRequests: aggregateByStatus(drData),
     };
 
     // Client-side aggregation by Analyst
     const byAnalyst = analysts.data?.map(analyst => ({
       name: analyst.name,
       _count: {
-        improvements: improvements.data?.filter(i => i.analyst_id === analyst.id).length || 0,
-        debts: debts.data?.filter(d => d.analyst_id === analyst.id).length || 0,
-        dataRequests: dataRequests.data?.filter(dr => dr.analyst_id === analyst.id).length || 0,
+        improvements: impData.filter(i => i.analyst_id === analyst.id).length || 0,
+        debts: debtData.filter(d => d.analyst_id === analyst.id).length || 0,
+        dataRequests: drData.filter(dr => dr.analyst_id === analyst.id).length || 0,
       }
     })) || [];
 
@@ -598,9 +646,9 @@ export const dashboardService = {
       byStatus,
       byAnalyst,
       lists: {
-        improvements: improvements.data || [],
-        debts: debts.data || [],
-        dataRequests: dataRequests.data || []
+        improvements: impData,
+        debts: debtData,
+        dataRequests: drData
       }
     };
   }

@@ -2,13 +2,14 @@ import { useState, useEffect } from 'react';
 import Layout from '../components/layouts/Layout';
 import { useUser } from '../contexts/UserContext';
 import { authService } from '../services/api';
-import { UserPlus, History, Search, Mail, Shield, Calendar, Plus, X, Edit, Trash2, AlertTriangle, RefreshCw, UserMinus } from 'lucide-react';
+import { UserRole } from '../types';
+import { UserPlus, History, Search, Mail, Shield, Calendar, Plus, X, Edit, Trash2, AlertTriangle, RefreshCw, UserMinus, KeyRound } from 'lucide-react';
 
 interface UserData {
   id: string;
   name: string;
   email: string;
-  role: 'ADMIN' | 'ANALYST';
+  role: UserRole;
   deleted_at?: string | null;
 }
 
@@ -37,13 +38,17 @@ export default function Users() {
     name: '',
     email: '',
     password: '',
-    role: 'ANALYST' as 'ADMIN' | 'ANALYST'
+    role: 'ANALYST' as UserRole
   });
 
   const [isEditModalOpen, setIsEditModalOpen] = useState(false);
   const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false);
+  const [isPasswordModalOpen, setIsPasswordModalOpen] = useState(false);
   const [editingUser, setEditingUser] = useState<UserData | null>(null);
   const [userToDelete, setUserToDelete] = useState<UserData | null>(null);
+  const [passwordUser, setPasswordUser] = useState<UserData | null>(null);
+  const [newPassword, setNewPassword] = useState('');
+  const [confirmPassword, setConfirmPassword] = useState('');
 
   const fetchData = async () => {
     try {
@@ -146,6 +151,36 @@ export default function Users() {
     }
   };
 
+  const handleAdminUpdatePassword = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!passwordUser) return;
+
+    if (newPassword.length < 6) {
+      alert('A nova senha deve ter no mínimo 6 caracteres.');
+      return;
+    }
+
+    if (newPassword !== confirmPassword) {
+      alert('A confirmação de senha não confere com a nova senha digitada.');
+      return;
+    }
+
+    try {
+      setIsSubmitting(true);
+      await authService.adminUpdatePassword(passwordUser.id, newPassword, currentUser?.id || '');
+      setIsPasswordModalOpen(false);
+      setPasswordUser(null);
+      setNewPassword('');
+      setConfirmPassword('');
+      fetchLogs();
+      alert(`Senha do usuário ${passwordUser.name} atualizada com sucesso!`);
+    } catch (error: any) {
+      alert('Erro ao atualizar senha: ' + error.message);
+    } finally {
+      setIsSubmitting(false);
+    }
+  };
+
   const filteredUsers = users.filter(u => 
     u.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
     u.email.toLowerCase().includes(searchTerm.toLowerCase())
@@ -234,10 +269,12 @@ export default function Users() {
                       </td>
                       <td className="px-6 py-4">
                         <span className={`px-2.5 py-1 rounded-full text-xs font-bold flex items-center gap-1.5 w-fit ${
-                          u.role === 'ADMIN' ? 'bg-purple-100 text-purple-700' : 'bg-blue-100 text-blue-700'
+                          u.role === 'ADMIN' ? 'bg-purple-100 text-purple-700' :
+                          u.role === 'LEADERSHIP' ? 'bg-indigo-100 text-indigo-700' :
+                          'bg-blue-100 text-blue-700'
                         }`}>
                           <Shield className="w-3 h-3" />
-                          {u.role}
+                          {u.role === 'ADMIN' ? 'Administrador' : u.role === 'LEADERSHIP' ? 'Liderança' : 'Analista'}
                         </span>
                       </td>
                       <td className="px-6 py-4 text-xs font-mono text-slate-400">{u.id}</td>
@@ -245,6 +282,18 @@ export default function Users() {
                         <div className="flex items-center justify-end gap-2">
                           {!viewDeleted ? (
                             <>
+                              <button 
+                                onClick={() => {
+                                  setPasswordUser(u);
+                                  setNewPassword('');
+                                  setConfirmPassword('');
+                                  setIsPasswordModalOpen(true);
+                                }}
+                                className="p-1.5 text-slate-400 hover:text-amber-600 hover:bg-amber-50 rounded-lg transition-all"
+                                title="Redefinir Senha de Acesso"
+                              >
+                                <KeyRound className="w-4 h-4" />
+                              </button>
                               <button 
                                 onClick={() => { setEditingUser(u); setIsEditModalOpen(true); }}
                                 className="p-1.5 text-slate-400 hover:text-primary-600 hover:bg-primary-50 rounded-lg transition-all"
@@ -341,6 +390,7 @@ export default function Users() {
                   className="w-full px-4 py-2 rounded-xl border border-slate-200 focus:ring-2 focus:ring-primary-500 outline-none text-sm"
                 >
                   <option value="ANALYST">Analista</option>
+                  <option value="LEADERSHIP">Liderança</option>
                   <option value="ADMIN">Administrador</option>
                 </select>
               </div>
@@ -479,6 +529,7 @@ export default function Users() {
                   className="w-full px-4 py-2 rounded-xl border border-slate-200 focus:ring-2 focus:ring-primary-500 outline-none text-sm"
                 >
                   <option value="ANALYST">Analista</option>
+                  <option value="LEADERSHIP">Liderança</option>
                   <option value="ADMIN">Administrador</option>
                 </select>
               </div>
@@ -530,6 +581,80 @@ export default function Users() {
                 </button>
               </div>
             </div>
+          </div>
+        </div>
+      )}
+      {/* Password Reset Modal */}
+      {isPasswordModalOpen && passwordUser && (
+        <div className="fixed inset-0 bg-slate-900/50 backdrop-blur-sm z-50 flex items-center justify-center p-4">
+          <div className="bg-white rounded-2xl shadow-xl w-full max-w-md overflow-hidden animate-in fade-in zoom-in duration-200">
+            <div className="px-6 py-4 border-b border-slate-100 flex items-center justify-between bg-slate-50/50">
+              <h2 className="text-lg font-bold text-slate-900 flex items-center gap-2">
+                <KeyRound className="w-5 h-5 text-amber-600" />
+                Redefinir Senha de Acesso
+              </h2>
+              <button 
+                onClick={() => {
+                  setIsPasswordModalOpen(false);
+                  setPasswordUser(null);
+                }} 
+                className="text-slate-400 hover:text-slate-600"
+              >
+                <X className="w-5 h-5" />
+              </button>
+            </div>
+            
+            <form onSubmit={handleAdminUpdatePassword} className="p-6 space-y-4">
+              <div className="p-3 bg-slate-50 rounded-xl border border-slate-200 text-xs text-slate-600 space-y-1">
+                <div><strong>Usuário:</strong> {passwordUser.name}</div>
+                <div><strong>E-mail:</strong> {passwordUser.email}</div>
+              </div>
+
+              <div>
+                <label className="block text-sm font-semibold text-slate-700 mb-1">Nova Senha</label>
+                <input 
+                  required
+                  type="password" 
+                  value={newPassword}
+                  onChange={e => setNewPassword(e.target.value)}
+                  className="w-full px-4 py-2 rounded-xl border border-slate-200 focus:ring-2 focus:ring-amber-500 outline-none text-sm"
+                  placeholder="Mínimo 6 caracteres"
+                  autoFocus
+                />
+              </div>
+
+              <div>
+                <label className="block text-sm font-semibold text-slate-700 mb-1">Confirmar Nova Senha</label>
+                <input 
+                  required
+                  type="password" 
+                  value={confirmPassword}
+                  onChange={e => setConfirmPassword(e.target.value)}
+                  className="w-full px-4 py-2 rounded-xl border border-slate-200 focus:ring-2 focus:ring-amber-500 outline-none text-sm"
+                  placeholder="Repita a nova senha"
+                />
+              </div>
+
+              <div className="pt-4 flex gap-3">
+                <button 
+                  type="button" 
+                  onClick={() => {
+                    setIsPasswordModalOpen(false);
+                    setPasswordUser(null);
+                  }} 
+                  className="flex-1 px-4 py-2.5 rounded-xl font-semibold text-slate-600 hover:bg-slate-100 text-sm"
+                >
+                  Cancelar
+                </button>
+                <button 
+                  type="submit" 
+                  disabled={isSubmitting}
+                  className="flex-1 bg-amber-600 hover:bg-amber-700 text-white px-4 py-2.5 rounded-xl font-semibold shadow-lg disabled:opacity-50 text-sm"
+                >
+                  {isSubmitting ? 'Salvando...' : 'Salvar Nova Senha'}
+                </button>
+              </div>
+            </form>
           </div>
         </div>
       )}

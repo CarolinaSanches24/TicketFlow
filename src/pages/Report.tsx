@@ -12,7 +12,6 @@ const TRANSLATIONS: Record<string, string> = {
   'PENDING': 'Pendente',
   'OPEN': 'Aberto',
   'ON_HOLD': 'Em Espera',
-  'FINISHED': 'Finalizado',
   'CONVERTED_TO_IMPROVEMENT': 'Virou Melhoria',
   'CONVERTED_TO_DEBT': 'Virou Débito',
   'IN_PROGRESS': 'Em Desenv.',
@@ -22,7 +21,10 @@ const TRANSLATIONS: Record<string, string> = {
   'CANCELED': 'Cancelada',
 };
 
-const translateStatus = (s: string) => TRANSLATIONS[s] || s;
+const translateStatus = (s: string) => {
+  if (s === 'FINISHED') return 'Resolvido';
+  return TRANSLATIONS[s] || s;
+};
 
 const formatDate = (dateStr: string) => {
   if (!dateStr) return '—';
@@ -220,21 +222,22 @@ export default function Report() {
     return items.filter((i: any) => {
       const matchAnalyst = !selectedAnalyst || i.analyst?.name === selectedAnalyst;
       const matchOrganization = !filterOrganization || (i.organization && i.organization.toLowerCase().includes(filterOrganization.toLowerCase()));
-      const matchStatus = !filterStatus || i.status === filterStatus;
+      const matchStatus = !filterStatus
+        ? true
+        : filterStatus === 'RESOLVED'
+        ? (i.status === 'RESOLVED' || i.status === 'FINISHED')
+        : i.status === filterStatus;
       const matchModule = !filterModule || (i.module && i.module.toLowerCase().includes(filterModule.toLowerCase()));
       const matchSubmodule = !filterSubmodule || (i.submodule && i.submodule.toLowerCase().includes(filterSubmodule.toLowerCase()));
       return matchAnalyst && matchOrganization && matchStatus && matchModule && matchSubmodule;
     });
   };
 
-  const filterOpen = (items: any[]) =>
-    filterByAdvanced(items).filter((i: any) => !filterStatus ? isOpen(i.status) : true);
+  const improvements = stats ? filterByAdvanced(stats.lists.improvements) : [];
+  const debts = stats ? filterByAdvanced(stats.lists.debts) : [];
+  const dataRequests = stats ? filterByAdvanced(stats.lists.dataRequests) : [];
 
-  const improvements = stats ? filterOpen(stats.lists.improvements) : [];
-  const debts = stats ? filterOpen(stats.lists.debts) : [];
-  const dataRequests = stats ? filterOpen(stats.lists.dataRequests) : [];
-
-  const totalOpen = improvements.length + debts.length + dataRequests.length;
+  const totalItems = improvements.length + debts.length + dataRequests.length;
 
   // Module/submodule distribution for pie chart
   const moduleChartData = useMemo(() => {
@@ -499,7 +502,7 @@ export default function Report() {
                   className={`bg-white border rounded-2xl p-5 print:shadow-none print:border print:rounded-lg cursor-pointer transition-all ${selectedType === 'ALL' ? 'ring-2 ring-primary-500 border-primary-500 shadow-md' : 'border-slate-100 shadow-sm hover:border-slate-300'}`}
                 >
                   <p className="text-xs font-bold text-slate-400 uppercase mb-1">Total</p>
-                  <p className="text-3xl font-bold text-slate-900">{totalOpen}</p>
+                  <p className="text-3xl font-bold text-slate-900">{totalItems}</p>
                 </div>
                 <div 
                   onClick={() => setSelectedType(prev => prev === 'IMPROVEMENTS' ? 'ALL' : 'IMPROVEMENTS')}
@@ -558,7 +561,7 @@ export default function Report() {
                 )}
               </div>
 
-              {totalOpen === 0 && (
+              {totalItems === 0 && (
                 <div className="flex flex-col items-center justify-center py-16 text-slate-400">
                   <AlertCircle className="w-12 h-12 mb-3 opacity-30" />
                   <p className="text-lg font-semibold">Nenhum item em aberto encontrado</p>

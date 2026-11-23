@@ -1,10 +1,12 @@
 import React, { createContext, useContext, useState, useEffect } from 'react';
 import { supabase } from '../lib/supabaseClient';
 
+import { UserRole } from '../types';
+
 interface User {
   id: string;
   name: string;
-  role: 'ADMIN' | 'ANALYST';
+  role: UserRole;
   email: string;
 }
 
@@ -32,7 +34,7 @@ export const UserProvider: React.FC<{ children: React.ReactNode }> = ({ children
       id: user.id,
       email: user.email || '',
       name: user.user_metadata?.name || 'Usuário',
-      role: (user.user_metadata?.role || 'ANALYST') as 'ADMIN' | 'ANALYST',
+      role: (user.user_metadata?.role || 'ANALYST') as UserRole,
     };
   };
 
@@ -51,7 +53,7 @@ export const UserProvider: React.FC<{ children: React.ReactNode }> = ({ children
             id: session.user.id,
             email: session.user.email || '',
             name: profile.name,
-            role: profile.role as 'ADMIN' | 'ANALYST',
+            role: (profile.role || 'ANALYST') as UserRole,
           });
         }
       }

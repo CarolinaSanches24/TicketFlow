@@ -100,6 +100,30 @@ export default function TicketsDashboard() {
     }
   };
 
+  const [openingBase, setOpeningBase] = useState(false);
+
+  const handleOpenBase = async (baseSummary: TicketBase) => {
+    try {
+      setOpeningBase(true);
+      if (baseSummary.datasets?.tickets?.rows && baseSummary.datasets.tickets.rows.length > 0) {
+        setActiveBase(baseSummary);
+        resetFilters();
+      } else {
+        const fullBase = await ticketStorage.getById(baseSummary.id);
+        if (fullBase) {
+          setActiveBase(fullBase);
+          resetFilters();
+        } else {
+          alert('Não foi possível carregar os dados desta base.');
+        }
+      }
+    } catch (err: any) {
+      alert('Erro ao carregar detalhes da base: ' + (err.message || err));
+    } finally {
+      setOpeningBase(false);
+    }
+  };
+
   // Processar upload de um ou mais arquivos (.html ou .csv)
   const handleProcessFile = async () => {
     if (uploadFiles.length === 0) {
@@ -648,14 +672,12 @@ export default function TicketsDashboard() {
 
                     <div className="mt-6 pt-2">
                       <button
-                        onClick={() => {
-                          setActiveBase(base);
-                          resetFilters();
-                        }}
-                        className="w-full flex items-center justify-center gap-2 py-2.5 px-4 bg-blue-50 text-blue-700 hover:bg-blue-600 hover:text-white rounded-xl text-sm font-semibold transition-all"
+                        onClick={() => handleOpenBase(base)}
+                        disabled={openingBase}
+                        className="w-full flex items-center justify-center gap-2 py-2.5 px-4 bg-blue-50 text-blue-700 hover:bg-blue-600 hover:text-white rounded-xl text-sm font-semibold transition-all disabled:opacity-50"
                       >
                         <Eye className="w-4 h-4" />
-                        DETALHAR
+                        {openingBase ? 'Carregando...' : 'DETALHAR'}
                       </button>
                     </div>
                   </div>

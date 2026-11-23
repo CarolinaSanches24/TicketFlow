@@ -133,7 +133,9 @@ const Layout: React.FC<{ children: React.ReactNode }> = ({ children }) => {
             </div>
             <div className="overflow-hidden">
               <p className="text-sm font-medium text-slate-900 truncate">{user?.name || 'Usuário'}</p>
-              <p className="text-xs text-slate-500 truncate">{user?.role || 'Visitante'}</p>
+              <p className="text-xs text-slate-500 truncate">
+                {user?.role === 'ADMIN' ? 'Administrador' : user?.role === 'LEADERSHIP' ? 'Liderança' : user?.role === 'ANALYST' ? 'Analista' : 'Visitante'}
+              </p>
             </div>
           </div>
           <button
