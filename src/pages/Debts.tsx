@@ -12,7 +12,8 @@ import { useSearchParams } from 'react-router-dom';
 import EntityAutocompleteSearch from '../components/EntityAutocompleteSearch';
 import EmployeeAutocompleteSearch from '../components/EmployeeAutocompleteSearch';
 import ModuleAutocompleteSearch from '../components/ModuleAutocompleteSearch';
-import { Plus, Search, User as UserIcon, Calendar, CheckCircle2, Clock, PlayCircle, Wrench, Info, Edit2, Trash2, Ban } from 'lucide-react';
+import { Plus, Search, User as UserIcon, Calendar, CheckCircle2, Clock, PlayCircle, Wrench, Info, Edit2, Trash2, Ban, AlertTriangle } from 'lucide-react';
+import { getDelayStatus, getDelayMetrics } from '../utils/delayCounter';
 
 interface Debt {
   id: string;
@@ -309,6 +310,26 @@ export default function Debts() {
       },
     }),
     columnHelper.display({
+      id: 'delay_counter',
+      header: 'Dias em Atraso',
+      cell: (info) => {
+        const item = info.row.original;
+        const delay = getDelayStatus(item.opened_at, item.created_at, item.status);
+        return (
+          <span className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs whitespace-nowrap border ${delay.badgeClass}`}>
+            {delay.isDelayed ? (
+              <AlertTriangle className="w-3.5 h-3.5 flex-shrink-0" />
+            ) : delay.label === 'Resolvido' ? (
+              <CheckCircle2 className="w-3.5 h-3.5 flex-shrink-0 text-emerald-600" />
+            ) : (
+              <Clock className="w-3.5 h-3.5 flex-shrink-0" />
+            )}
+            <span>{delay.label}</span>
+          </span>
+        );
+      },
+    }),
+    columnHelper.display({
       id: 'actions',
       header: 'Ações',
       cell: (info) => {
@@ -377,6 +398,8 @@ export default function Debts() {
     });
   }, [data, searchTerm, filterAnalyst, filterOrg, filterNumber, filterStatus, filterStartDate, filterEndDate]);
 
+  const metrics = useMemo(() => getDelayMetrics(data), [data]);
+
   const table = useReactTable({
     data: filteredData,
     columns,
@@ -402,6 +425,56 @@ export default function Debts() {
             <Plus className="w-5 h-5" />
             Novo Débito
           </button>
+        </div>
+
+        {/* KPI Counter Cards com contador de dias em atraso */}
+        <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
+          <div className="bg-white p-4 rounded-2xl shadow-sm border border-slate-100 flex items-center justify-between">
+            <div>
+              <p className="text-xs font-bold text-slate-400 uppercase">Total de Débitos</p>
+              <p className="text-2xl font-bold text-slate-900 mt-0.5">{metrics.total}</p>
+            </div>
+            <div className="w-10 h-10 rounded-xl bg-amber-50 text-amber-600 flex items-center justify-center font-bold">
+              <Wrench className="w-5 h-5" />
+            </div>
+          </div>
+
+          <div className="bg-white p-4 rounded-2xl shadow-sm border border-slate-100 flex items-center justify-between">
+            <div>
+              <p className="text-xs font-bold text-slate-400 uppercase">Em Correção / Aberto</p>
+              <p className="text-2xl font-bold text-amber-600 mt-0.5">{metrics.openCount}</p>
+            </div>
+            <div className="w-10 h-10 rounded-xl bg-amber-50 text-amber-600 flex items-center justify-center font-bold">
+              <Clock className="w-5 h-5" />
+            </div>
+          </div>
+
+          <div className="bg-white p-4 rounded-2xl shadow-sm border border-slate-100 flex items-center justify-between">
+            <div>
+              <p className="text-xs font-bold text-slate-400 uppercase">Resolvidos</p>
+              <p className="text-2xl font-bold text-emerald-600 mt-0.5">{metrics.resolvedCount}</p>
+            </div>
+            <div className="w-10 h-10 rounded-xl bg-emerald-50 text-emerald-600 flex items-center justify-center font-bold">
+              <CheckCircle2 className="w-5 h-5" />
+            </div>
+          </div>
+
+          <div className="bg-white p-4 rounded-2xl shadow-sm border border-slate-100 flex items-center justify-between">
+            <div>
+              <p className="text-xs font-bold text-slate-400 uppercase">Dias em Atraso (Média)</p>
+              <div className="flex items-baseline gap-2 mt-0.5">
+                <span className={`text-2xl font-bold ${metrics.delayedCount > 0 ? 'text-amber-600' : 'text-slate-900'}`}>
+                  {metrics.avgDelayDays}d
+                </span>
+                <span className="text-xs text-slate-400">({metrics.delayedCount} ativos)</span>
+              </div>
+            </div>
+            <div className={`w-10 h-10 rounded-xl flex items-center justify-center font-bold ${
+              metrics.criticalDelayedCount > 0 ? 'bg-red-50 text-red-600' : 'bg-amber-50 text-amber-600'
+            }`}>
+              <AlertTriangle className="w-5 h-5" />
+            </div>
+          </div>
         </div>
 
         {/* Legend Box */}

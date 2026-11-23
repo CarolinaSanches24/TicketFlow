@@ -7,7 +7,7 @@ export interface User {
   role: UserRole
 }
 
-export type TicketStatus = 'Pendente' | 'Aberto' | 'Em Espera' | 'Finalizado'
+export type TicketStatus = 'Pendente' | 'Aberto' | 'Em Espera' | 'Resolvido'
 
 export interface Ticket {
   id: string
@@ -20,7 +20,7 @@ export interface Ticket {
   updatedAt: string
 }
 
-export type ImprovementStatus = 'Aberta' | 'Em Desenvolvimento' | 'Em Teste' | 'Finalizada' | 'Convertida em Débito Técnico'
+export type ImprovementStatus = 'Aberta' | 'Em Desenvolvimento' | 'Em Teste' | 'Resolvido' | 'Convertida em Débito Técnico'
 
 export interface Improvement {
   id: string

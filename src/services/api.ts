@@ -296,11 +296,23 @@ export const improvementService = {
     return data;
   },
   create: async (improvementData: any) => {
-    const { data, error } = await supabase
+    let payload = { ...improvementData };
+    let { data, error } = await supabase
       .from('improvements')
-      .insert([improvementData])
+      .insert([payload])
       .select()
       .single();
+
+    if (error && payload.status === 'RESOLVED') {
+      payload.status = 'FINISHED';
+      const retry = await supabase
+        .from('improvements')
+        .insert([payload])
+        .select()
+        .single();
+      if (!retry.error) return retry.data;
+    }
+
     if (error) throw error;
     return data;
   },
@@ -327,22 +339,46 @@ export const improvementService = {
       }
     }
 
-    const { data, error } = await supabase
+    let { data, error } = await supabase
       .from('improvements')
       .update({ status })
       .eq('id', id)
       .select()
       .single();
+
+    if (error && status === 'RESOLVED') {
+      const retry = await supabase
+        .from('improvements')
+        .update({ status: 'FINISHED' })
+        .eq('id', id)
+        .select()
+        .single();
+      if (!retry.error) return retry.data;
+    }
+
     if (error) throw error;
     return data;
   },
   update: async (id: string, updates: any) => {
-    const { data, error } = await supabase
+    let payload = { ...updates };
+    let { data, error } = await supabase
       .from('improvements')
-      .update(updates)
+      .update(payload)
       .eq('id', id)
       .select()
       .single();
+
+    if (error && payload.status === 'RESOLVED') {
+      payload.status = 'FINISHED';
+      const retry = await supabase
+        .from('improvements')
+        .update(payload)
+        .eq('id', id)
+        .select()
+        .single();
+      if (!retry.error) return retry.data;
+    }
+
     if (error) throw error;
     return data;
   },
@@ -412,31 +448,67 @@ export const dataRequestService = {
     return data;
   },
   create: async (requestData: any) => {
-    const { data, error } = await supabase
+    let payload = { ...requestData };
+    let { data, error } = await supabase
       .from('data_requests')
-      .insert([requestData])
+      .insert([payload])
       .select()
       .single();
+
+    if (error && payload.status === 'RESOLVED') {
+      payload.status = 'FINISHED';
+      const retry = await supabase
+        .from('data_requests')
+        .insert([payload])
+        .select()
+        .single();
+      if (!retry.error) return retry.data;
+    }
+
     if (error) throw error;
     return data;
   },
   updateStatus: async (id: string, status: string) => {
-    const { data, error } = await supabase
+    let { data, error } = await supabase
       .from('data_requests')
       .update({ status })
       .eq('id', id)
       .select()
       .single();
+
+    if (error && status === 'RESOLVED') {
+      const retry = await supabase
+        .from('data_requests')
+        .update({ status: 'FINISHED' })
+        .eq('id', id)
+        .select()
+        .single();
+      if (!retry.error) return retry.data;
+    }
+
     if (error) throw error;
     return data;
   },
   update: async (id: string, updates: any) => {
-    const { data, error } = await supabase
+    let payload = { ...updates };
+    let { data, error } = await supabase
       .from('data_requests')
-      .update(updates)
+      .update(payload)
       .eq('id', id)
       .select()
       .single();
+
+    if (error && payload.status === 'RESOLVED') {
+      payload.status = 'FINISHED';
+      const retry = await supabase
+        .from('data_requests')
+        .update(payload)
+        .eq('id', id)
+        .select()
+        .single();
+      if (!retry.error) return retry.data;
+    }
+
     if (error) throw error;
     return data;
   },

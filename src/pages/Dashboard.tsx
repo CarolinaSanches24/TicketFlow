@@ -13,8 +13,9 @@ import {
   Legend
 } from 'recharts';
 import Layout from '../components/layouts/Layout';
-import { TrendingUp, AlertCircle, CheckCircle2, Database } from 'lucide-react';
+import { TrendingUp, AlertCircle, CheckCircle2, Database, Clock } from 'lucide-react';
 import { dashboardService } from '../services/api';
+import { getDelayMetrics, getDelayStatus } from '../utils/delayCounter';
 
 const COLORS = ['#3b82f6', '#10b981', '#f59e0b', '#ef4444', '#8b5cf6'];
 
@@ -22,7 +23,7 @@ const TRANSLATIONS: Record<string, string> = {
   'PENDING': 'Pendente',
   'OPEN': 'Aberto',
   'ON_HOLD': 'Em Espera',
-  'FINISHED': 'Finalizado',
+  'FINISHED': 'Resolvido',
   'CONVERTED_TO_IMPROVEMENT': 'Virou Melhoria',
   'CONVERTED_TO_DEBT': 'Virou Débito',
   'IN_PROGRESS': 'Em Desenv.',
@@ -92,11 +93,52 @@ export default function Dashboard() {
     dataRequests: a._count.dataRequests
   }));
 
+  const improvementDelay = getDelayMetrics(stats.lists?.improvements || []);
+  const debtDelay = getDelayMetrics(stats.lists?.debts || []);
+  const dataRequestDelay = getDelayMetrics(stats.lists?.dataRequests || []);
+  const allDelay = getDelayMetrics([
+    ...(stats.lists?.improvements || []),
+    ...(stats.lists?.debts || []),
+    ...(stats.lists?.dataRequests || [])
+  ]);
+
   const cards = [
-    { id: 'improvements', label: 'Total Melhorias', value: stats.totals.improvements, icon: TrendingUp, color: 'text-emerald-600', bg: 'bg-emerald-50' },
-    { id: 'debts', label: 'Total Débitos', value: stats.totals.debts, icon: AlertCircle, color: 'text-amber-600', bg: 'bg-amber-50' },
-    { id: 'data-requests', label: 'Total de solicitações realizadas para dados', value: stats.totals.dataRequests, icon: Database, color: 'text-indigo-600', bg: 'bg-indigo-50' },
-    { id: 'all', label: 'Total Geral', value: stats.totals.grandTotal, icon: CheckCircle2, color: 'text-primary-600', bg: 'bg-primary-50' },
+    { 
+      id: 'improvements', 
+      label: 'Total Melhorias', 
+      value: stats.totals.improvements, 
+      icon: TrendingUp, 
+      color: 'text-emerald-600', 
+      bg: 'bg-emerald-50',
+      delay: improvementDelay
+    },
+    { 
+      id: 'debts', 
+      label: 'Total Débitos', 
+      value: stats.totals.debts, 
+      icon: AlertCircle, 
+      color: 'text-amber-600', 
+      bg: 'bg-amber-50',
+      delay: debtDelay
+    },
+    { 
+      id: 'data-requests', 
+      label: 'Solicitações para Dados', 
+      value: stats.totals.dataRequests, 
+      icon: Database, 
+      color: 'text-indigo-600', 
+      bg: 'bg-indigo-50',
+      delay: dataRequestDelay
+    },
+    { 
+      id: 'all', 
+      label: 'Total Geral', 
+      value: stats.totals.grandTotal, 
+      icon: CheckCircle2, 
+      color: 'text-primary-600', 
+      bg: 'bg-primary-50',
+      delay: allDelay
+    },
   ];
 
   const getSelectedData = () => {
@@ -168,22 +210,49 @@ export default function Dashboard() {
         </div>
 
         {/* Stats Grid */}
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-4">
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
           {cards.map((stat) => (
             <button 
               key={stat.id} 
               onClick={() => setSelectedCategory(selectedCategory === stat.id ? null : stat.id)}
-              className={`bg-white p-6 rounded-2xl shadow-sm border transition-all text-left flex items-center gap-4 hover:scale-[1.02] active:scale-[0.98] ${
-                selectedCategory === stat.id ? 'ring-2 ring-primary-500 border-primary-500' : 'border-slate-100'
+              className={`bg-white p-5 rounded-2xl shadow-sm border transition-all text-left flex flex-col justify-between hover:scale-[1.01] active:scale-[0.99] ${
+                selectedCategory === stat.id ? 'ring-2 ring-primary-500 border-primary-500 shadow-md' : 'border-slate-100 hover:border-slate-200'
               }`}
             >
-              <div className={`w-12 h-12 ${stat.bg} rounded-xl flex items-center justify-center`}>
-                <stat.icon className={`w-6 h-6 ${stat.color}`} />
+              <div className="flex items-center gap-4">
+                <div className={`w-12 h-12 ${stat.bg} rounded-xl flex items-center justify-center flex-shrink-0`}>
+                  <stat.icon className={`w-6 h-6 ${stat.color}`} />
+                </div>
+                <div className="min-w-0">
+                  <p className="text-xs font-semibold text-slate-500 truncate">{stat.label}</p>
+                  <p className="text-2xl font-bold text-slate-900">{stat.value}</p>
+                </div>
               </div>
-              <div>
-                <p className="text-sm font-medium text-slate-500">{stat.label}</p>
-                <p className="text-2xl font-bold text-slate-900">{stat.value}</p>
-              </div>
+
+              {stat.delay && (
+                <div className="mt-3 pt-3 border-t border-slate-100 flex items-center justify-between text-xs">
+                  <div className="flex items-center gap-1.5 text-slate-600">
+                    <Clock className="w-3.5 h-3.5 text-slate-400" />
+                    <span>Abertos: <strong className="text-slate-900">{stat.delay.openCount}</strong></span>
+                  </div>
+                  <div className="flex items-center gap-1">
+                    <span className={`px-2 py-0.5 rounded-full text-[11px] font-semibold ${
+                      stat.delay.avgDelayDays > 15 
+                        ? 'bg-rose-100 text-rose-700' 
+                        : stat.delay.avgDelayDays > 5 
+                        ? 'bg-amber-100 text-amber-700' 
+                        : 'bg-emerald-100 text-emerald-700'
+                    }`}>
+                      Média: {stat.delay.avgDelayDays}d
+                    </span>
+                    {stat.delay.criticalDelayedCount > 0 && (
+                      <span className="px-1.5 py-0.5 rounded-full text-[10px] font-bold bg-rose-50 text-rose-600 border border-rose-200" title={`${stat.delay.criticalDelayedCount} tarefas abertas há mais de 15 dias`}>
+                        {stat.delay.criticalDelayedCount} crit.
+                      </span>
+                    )}
+                  </div>
+                </div>
+              )}
             </button>
           ))}
         </div>
@@ -316,57 +385,67 @@ export default function Dashboard() {
                     <th className="px-6 py-4 text-xs font-bold text-slate-500 uppercase tracking-wider">Título / Descrição</th>
                     <th className="px-6 py-4 text-xs font-bold text-slate-500 uppercase tracking-wider">Analista</th>
                     <th className="px-6 py-4 text-xs font-bold text-slate-500 uppercase tracking-wider">Status</th>
-                    <th className="px-6 py-4 text-xs font-bold text-slate-500 uppercase tracking-wider">Criado em</th>
+                    <th className="px-6 py-4 text-xs font-bold text-slate-500 uppercase tracking-wider">Abertura / Criado em</th>
+                    <th className="px-6 py-4 text-xs font-bold text-slate-500 uppercase tracking-wider">Dias em Atraso</th>
                   </tr>
                 </thead>
                 <tbody>
                   {selectedData.length === 0 ? (
                     <tr>
-                      <td colSpan={6} className="px-6 py-12 text-center text-slate-500 italic">
+                      <td colSpan={7} className="px-6 py-12 text-center text-slate-500 italic">
                         Nenhum registro encontrado para este período e categoria.
                       </td>
                     </tr>
                   ) : (
-                    selectedData.map((item: any) => (
-                      <tr key={item.id} className="hover:bg-slate-50 transition-colors border-b border-slate-50 last:border-0">
-                        <td className="px-6 py-4">
-                          {item.external_url ? (
-                            <a 
-                              href={item.external_url} 
-                              target="_blank" 
-                              rel="noopener noreferrer"
-                              className="font-mono text-xs font-bold bg-primary-50 px-2 py-1 rounded text-primary-600 hover:bg-primary-100 transition-colors flex items-center gap-1 w-fit"
-                              title="Abrir link externo"
-                            >
-                              #{item.external_id || '---'}
-                              <TrendingUp className="w-3 h-3 inline ml-1" />
-                            </a>
-                          ) : (
-                            <span className="font-mono text-xs font-bold bg-slate-100 px-2 py-1 rounded text-slate-600">
-                              #{item.external_id || '---'}
+                    selectedData.map((item: any) => {
+                      const delay = getDelayStatus(item.opened_at, item.created_at, item.status);
+                      return (
+                        <tr key={item.id} className="hover:bg-slate-50 transition-colors border-b border-slate-50 last:border-0">
+                          <td className="px-6 py-4">
+                            {item.external_url ? (
+                              <a 
+                                href={item.external_url} 
+                                target="_blank" 
+                                rel="noopener noreferrer"
+                                className="font-mono text-xs font-bold bg-primary-50 px-2 py-1 rounded text-primary-600 hover:bg-primary-100 transition-colors flex items-center gap-1 w-fit"
+                                title="Abrir link externo"
+                              >
+                                #{item.external_id || '---'}
+                                <TrendingUp className="w-3 h-3 inline ml-1" />
+                              </a>
+                            ) : (
+                              <span className="font-mono text-xs font-bold bg-slate-100 px-2 py-1 rounded text-slate-600">
+                                #{item.external_id || '---'}
+                              </span>
+                            )}
+                          </td>
+                          <td className="px-6 py-4">
+                            <span className="text-sm font-medium text-slate-600">{item.type}</span>
+                          </td>
+                          <td className="px-6 py-4">
+                            <span className="text-sm font-semibold text-slate-900 block">{item.title || item.description?.substring(0, 50) + '...'}</span>
+                            {item.title && <span className="text-xs text-slate-500 block truncate max-w-xs">{item.description}</span>}
+                          </td>
+                          <td className="px-6 py-4 text-sm text-slate-600">
+                            {item.analyst?.name || 'Não atribuído'}
+                          </td>
+                          <td className="px-6 py-4">
+                            <span className="text-xs font-bold px-2.5 py-1 rounded-full bg-slate-100 text-slate-600">
+                              {translateStatus(item.status)}
                             </span>
-                          )}
-                        </td>
-                        <td className="px-6 py-4">
-                          <span className="text-sm font-medium text-slate-600">{item.type}</span>
-                        </td>
-                        <td className="px-6 py-4">
-                          <span className="text-sm font-semibold text-slate-900 block">{item.title || item.description?.substring(0, 50) + '...'}</span>
-                          {item.title && <span className="text-xs text-slate-500 block truncate max-w-xs">{item.description}</span>}
-                        </td>
-                        <td className="px-6 py-4 text-sm text-slate-600">
-                          {item.analyst?.name || 'Não atribuído'}
-                        </td>
-                        <td className="px-6 py-4">
-                          <span className="text-xs font-bold px-2.5 py-1 rounded-full bg-slate-100 text-slate-600">
-                            {translateStatus(item.status)}
-                          </span>
-                        </td>
-                        <td className="px-6 py-4 text-sm text-slate-500">
-                          {formatDate(item.opened_at || item.created_at)}
-                        </td>
-                      </tr>
-                    ))
+                          </td>
+                          <td className="px-6 py-4 text-sm text-slate-500">
+                            {formatDate(item.opened_at || item.created_at)}
+                          </td>
+                          <td className="px-6 py-4">
+                            <span className={`inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-xs font-semibold ${delay.badgeClass}`}>
+                              <Clock className="w-3 h-3" />
+                              {delay.label}
+                            </span>
+                          </td>
+                        </tr>
+                      );
+                    })
                   )}
                 </tbody>
               </table>

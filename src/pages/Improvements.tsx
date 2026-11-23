@@ -13,6 +13,7 @@ import EntityAutocompleteSearch from '../components/EntityAutocompleteSearch';
 import EmployeeAutocompleteSearch from '../components/EmployeeAutocompleteSearch';
 import ModuleAutocompleteSearch from '../components/ModuleAutocompleteSearch';
 import { Plus, Search, User as UserIcon, Calendar, CheckCircle2, Clock, PlayCircle, Beaker, AlertTriangle, Eye, EyeOff, Edit2, Trash2, TrendingUp, Ban } from 'lucide-react';
+import { getDelayStatus, getDelayMetrics } from '../utils/delayCounter';
 
 interface Improvement {
   id: string;
@@ -20,7 +21,7 @@ interface Improvement {
   external_url: string | null;
   title: string;
   description: string;
-  status: 'OPEN' | 'IN_PROGRESS' | 'IN_TEST' | 'FINISHED' | 'CONVERTED_TO_DEBT' | 'CANCELED';
+  status: 'OPEN' | 'IN_PROGRESS' | 'IN_TEST' | 'FINISHED' | 'RESOLVED' | 'CONVERTED_TO_DEBT' | 'CANCELED';
   analyst_id: string | null;
   analyst?: { name: string };
   organization?: string | null;
@@ -39,9 +40,14 @@ const statusConfig: Record<string, { label: string; color: string; icon: any }> 
   'OPEN': { label: 'Aberta', color: 'bg-blue-100 text-blue-700', icon: PlayCircle },
   'IN_PROGRESS': { label: 'Em Desenv.', color: 'bg-indigo-100 text-indigo-700', icon: Clock },
   'IN_TEST': { label: 'Em Teste', color: 'bg-purple-100 text-purple-700', icon: Beaker },
-  'FINISHED': { label: 'Finalizada', color: 'bg-emerald-100 text-emerald-700', icon: CheckCircle2 },
+  'RESOLVED': { label: 'Resolvido', color: 'bg-emerald-100 text-emerald-700', icon: CheckCircle2 },
   'CONVERTED_TO_DEBT': { label: 'Débito Técnico', color: 'bg-red-100 text-red-700', icon: AlertTriangle },
   'CANCELED': { label: 'Cancelada', color: 'bg-slate-100 text-slate-700', icon: Ban },
+};
+
+const getStatusConfig = (val: string) => {
+  if (val === 'FINISHED') return statusConfig['RESOLVED'];
+  return statusConfig[val] || statusConfig['OPEN'];
 };
 
 export default function Improvements() {
@@ -260,7 +266,7 @@ export default function Improvements() {
       header: 'Status',
       cell: info => {
         const val = info.getValue();
-        const config = statusConfig[val] || statusConfig['OPEN'];
+        const config = getStatusConfig(val);
         const Icon = config.icon;
         return (
           <span className={`px-2 py-0.5 rounded-full text-xs font-semibold inline-flex items-center gap-1 whitespace-nowrap ${config.color}`}>
@@ -315,11 +321,31 @@ export default function Improvements() {
       },
     }),
     columnHelper.display({
+      id: 'delay_counter',
+      header: 'Dias em Atraso',
+      cell: (info) => {
+        const item = info.row.original;
+        const delay = getDelayStatus(item.opened_at, item.created_at, item.status);
+        return (
+          <span className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs whitespace-nowrap border ${delay.badgeClass}`}>
+            {delay.isDelayed ? (
+              <AlertTriangle className="w-3.5 h-3.5 flex-shrink-0" />
+            ) : delay.label === 'Resolvido' ? (
+              <CheckCircle2 className="w-3.5 h-3.5 flex-shrink-0 text-emerald-600" />
+            ) : (
+              <Clock className="w-3.5 h-3.5 flex-shrink-0" />
+            )}
+            <span>{delay.label}</span>
+          </span>
+        );
+      },
+    }),
+    columnHelper.display({
       id: 'actions',
       header: 'Ações',
       cell: (info) => {
         const item = info.row.original;
-        const isClosed = ['FINISHED', 'CONVERTED_TO_DEBT', 'CANCELED'].includes(item.status);
+        const isClosed = ['RESOLVED', 'FINISHED', 'CONVERTED_TO_DEBT', 'CANCELED'].includes(item.status);
         
         return (
           <div className="flex items-center justify-end gap-1 whitespace-nowrap">
@@ -332,7 +358,7 @@ export default function Improvements() {
                    <button onClick={() => handleStatusUpdate(item.id, 'IN_TEST')} className="px-2 py-1 text-xs font-medium bg-purple-50 text-purple-700 hover:bg-purple-100 rounded transition-colors whitespace-nowrap">Testar</button>
                  )}
                  {item.status === 'IN_TEST' && (
-                   <button onClick={() => handleStatusUpdate(item.id, 'FINISHED')} className="px-2 py-1 text-xs font-medium bg-emerald-50 text-emerald-700 hover:bg-emerald-100 rounded transition-colors whitespace-nowrap">Finalizar</button>
+                   <button onClick={() => handleStatusUpdate(item.id, 'RESOLVED')} className="px-2 py-1 text-xs font-medium bg-emerald-50 text-emerald-700 hover:bg-emerald-100 rounded transition-colors whitespace-nowrap">Resolver</button>
                  )}
                  <button onClick={() => handleStatusUpdate(item.id, 'CONVERTED_TO_DEBT')} className="px-1.5 py-1 text-xs font-medium text-red-600 hover:bg-red-50 rounded transition-colors whitespace-nowrap" title="Converter em Débito Técnico">Débito</button>
                  <button onClick={() => handleStatusUpdate(item.id, 'CANCELED')} className="px-1.5 py-1 text-xs font-medium text-slate-500 hover:bg-slate-100 rounded transition-colors whitespace-nowrap" title="Cancelar melhoria">Cancelar</button>
@@ -366,12 +392,16 @@ export default function Improvements() {
       const matchesSearch = t.title.toLowerCase().includes(searchTerm.toLowerCase()) ||
                            t.analyst?.name?.toLowerCase().includes(searchTerm.toLowerCase());
       
-      const isClosed = ['FINISHED', 'CONVERTED_TO_DEBT', 'CANCELED'].includes(t.status);
+      const isClosed = ['RESOLVED', 'FINISHED', 'CONVERTED_TO_DEBT', 'CANCELED'].includes(t.status);
       
       const matchesAnalyst = !filterAnalyst || t.analyst_id === filterAnalyst;
       const matchesOrg = !filterOrg || (t.organization && t.organization.toLowerCase().includes(filterOrg.toLowerCase()));
       const matchesNumber = !filterNumber || (t.external_id && t.external_id.toLowerCase().includes(filterNumber.toLowerCase()));
-      const matchesStatus = !filterStatus || t.status === filterStatus;
+      const matchesStatus = !filterStatus
+        ? true
+        : filterStatus === 'RESOLVED'
+        ? (t.status === 'RESOLVED' || t.status === 'FINISHED')
+        : t.status === filterStatus;
       
       let matchesDate = true;
       if (filterStartDate || filterEndDate) {
@@ -392,6 +422,8 @@ export default function Improvements() {
       return matchesSearch && !isClosed && matchesFilters;
     });
   }, [data, searchTerm, showClosed, filterAnalyst, filterOrg, filterNumber, filterStatus, filterStartDate, filterEndDate]);
+
+  const metrics = useMemo(() => getDelayMetrics(data), [data]);
 
   const table = useReactTable({
     data: filteredData,
@@ -417,6 +449,56 @@ export default function Improvements() {
           </button>
         </div>
 
+        {/* KPI Counter Cards com contador de dias em atraso */}
+        <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
+          <div className="bg-white p-4 rounded-2xl shadow-sm border border-slate-100 flex items-center justify-between">
+            <div>
+              <p className="text-xs font-bold text-slate-400 uppercase">Total de Melhorias</p>
+              <p className="text-2xl font-bold text-slate-900 mt-0.5">{metrics.total}</p>
+            </div>
+            <div className="w-10 h-10 rounded-xl bg-blue-50 text-blue-600 flex items-center justify-center font-bold">
+              <TrendingUp className="w-5 h-5" />
+            </div>
+          </div>
+
+          <div className="bg-white p-4 rounded-2xl shadow-sm border border-slate-100 flex items-center justify-between">
+            <div>
+              <p className="text-xs font-bold text-slate-400 uppercase">Em Andamento</p>
+              <p className="text-2xl font-bold text-indigo-600 mt-0.5">{metrics.openCount}</p>
+            </div>
+            <div className="w-10 h-10 rounded-xl bg-indigo-50 text-indigo-600 flex items-center justify-center font-bold">
+              <Clock className="w-5 h-5" />
+            </div>
+          </div>
+
+          <div className="bg-white p-4 rounded-2xl shadow-sm border border-slate-100 flex items-center justify-between">
+            <div>
+              <p className="text-xs font-bold text-slate-400 uppercase">Resolvidas</p>
+              <p className="text-2xl font-bold text-emerald-600 mt-0.5">{metrics.resolvedCount}</p>
+            </div>
+            <div className="w-10 h-10 rounded-xl bg-emerald-50 text-emerald-600 flex items-center justify-center font-bold">
+              <CheckCircle2 className="w-5 h-5" />
+            </div>
+          </div>
+
+          <div className="bg-white p-4 rounded-2xl shadow-sm border border-slate-100 flex items-center justify-between">
+            <div>
+              <p className="text-xs font-bold text-slate-400 uppercase">Dias em Atraso (Média)</p>
+              <div className="flex items-baseline gap-2 mt-0.5">
+                <span className={`text-2xl font-bold ${metrics.delayedCount > 0 ? 'text-amber-600' : 'text-slate-900'}`}>
+                  {metrics.avgDelayDays}d
+                </span>
+                <span className="text-xs text-slate-400">({metrics.delayedCount} ativas)</span>
+              </div>
+            </div>
+            <div className={`w-10 h-10 rounded-xl flex items-center justify-center font-bold ${
+              metrics.criticalDelayedCount > 0 ? 'bg-red-50 text-red-600' : 'bg-amber-50 text-amber-600'
+            }`}>
+              <AlertTriangle className="w-5 h-5" />
+            </div>
+          </div>
+        </div>
+
         <div className="bg-white p-4 rounded-2xl shadow-sm border border-slate-100 flex flex-col gap-4">
           <div className="flex flex-col md:flex-row gap-4 items-center">
             <div className="relative flex-1 w-full">
@@ -439,9 +521,9 @@ export default function Improvements() {
               }`}
             >
               {showClosed ? (
-                <><EyeOff className="w-4 h-4" /> Ocultar Finalizadas</>
+                <><EyeOff className="w-4 h-4" /> Ocultar Resolvidos</>
               ) : (
-                <><Eye className="w-4 h-4" /> Ver Finalizadas</>
+                <><Eye className="w-4 h-4" /> Ver Resolvidos</>
               )}
             </button>
           </div>
